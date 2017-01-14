@@ -25,7 +25,7 @@ Newt adds a search API for searching the Postgres JSON data and
 returning persistent objects.  It also provides a convenience API for
 raw data searches.
 
-Finally, newt adds additional convenience APIs to more directy support
+Finally, newt adds additional convenience APIs to more directly support
 it's intended audience.  These are intended to augment but not hide
 ZODB and RelStorage.  Some of these are just aliases.  It will be
 possible to integrate new with existing ZODB applications.

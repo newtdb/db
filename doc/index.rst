@@ -11,7 +11,7 @@ Newt DB, the amphibious database
 - Within your application, search results may be returned as
   application objects, or as data, depending on your needs.
 - Data are visible and searchable outside your application as JSON.
-- Tranactional and build on mature technology for reliability.
+- Transactional and build on mature technology for reliability.
 
 Learn more:
 

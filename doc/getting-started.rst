@@ -2,10 +2,10 @@
 Getting started with Newt DB
 ============================
 
-You'll need a Postgres Datbase server. You can `install one yourself
+You'll need a Postgres Database server. You can `install one yourself
 <https://www.postgresql.org/download/>`_ or you can use a `hosted Postgres server <https://www.google.com/search?q=postgres+as+a+service>`_.
 
-Next, install newtdb::
+Next, install newt.db::
 
   pip install newt.db
 
@@ -32,7 +32,7 @@ To add data, we simply add objects to the root, directly::
 
   >>> connection.root.first = newt.db.Object(name='My first object')
 
-Or indirecty, as a subobject::
+Or indirect, as a subobject::
 
   >>> connection.root.first.child = newt.db.Object(name='First child')
 
@@ -41,13 +41,13 @@ changes::
 
   >>> connection.commit()
 
-Or, if we decise we made a mistake, we can abort any changes made
+Or, if we decide we made a mistake, we can abort any changes made
 since the last commit::
 
   >>> connection.abort()
 
 Above, we used the ``newt.db.Object`` class to create new objects.  This
-class creates objects that behave a little bit like Javascript
+class creates objects that behave a little bit like JavaScript
 objects. They're just generic containers for properties.  They're
 handy for playing, and when you have a little data to store and you
 don't want to bother making a custom class.
@@ -80,7 +80,7 @@ Collections
 ===========
 
 Having all objects in the root doesn't provide much organization.
-It's better to create container objects.  For exampe, we can
+It's better to create container objects.  For example, we can
 create a task list::
 
   class TaskList(newt.db.Persistent)::
@@ -117,11 +117,11 @@ container, perhaps organized by list name::
           return self.lists[name]
 
 Here, we used a ``BTree`` as the basis of our container.  BTrees are
-mapping objects that keep data sorted on thier keys.
+mapping objects that keep data sorted on their keys.
 
 BTrees handle very large collections well, because, when they get
 large, they spread their data over multiple database records, reducing
-the amound of data read and written and allowing collections that
+the amount of data read and written and allowing collections that
 would be too large to keep in memory at once.
 
 With this, building up the database could look like:
@@ -172,7 +172,7 @@ including ``object_json``::
 
 The ``zoid`` column is the database primary key. Every persistent
 object in newt has a unique zoid.  The ``class_pickle`` pickle
-contains minimual information to, along with ``zoid`` creatre newt
+contains minimal information to, along with ``zoid`` create newt
 objects. The ``class_name`` column contains object's class name, which
 can be useful for search.  The state column contains a JSON
 representation of object state suitable for searching and access from
