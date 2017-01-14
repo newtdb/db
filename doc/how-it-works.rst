@@ -15,8 +15,8 @@ Postgres.
 Newt adds conversion of data from the native serialization used by
 ZODB to JSON, stored in a Postgres `JSONB
 <https://www.postgresql.org/docs/current/static/datatype-json.html>`_
-column.  The JSON data supplements the native data to support indexing
-search and access from non-Python application.  Because the JSON
+column.  The JSON data supplements the native data to support indexing,
+search, and access from non-Python application.  Because the JSON
 format is lossy, compared to the native format, the native format is
 still used for loading objects from the database. For this reason, the
 JSON data are read-only.
