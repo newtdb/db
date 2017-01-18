@@ -27,7 +27,7 @@ class SearchTests(DBSetup, unittest.TestCase):
             tid = self.store(i, i=i)
 
         obs = self.conn.search(
-            "select * from object_json "
+            "select * from newt "
             "where state->>'i' >= %s and state->>'i' <= %s "
             "order by zoid ", '2', '5')
 
@@ -52,7 +52,7 @@ class SearchTests(DBSetup, unittest.TestCase):
         conn2 = self.db.open()
 
         total, batch = conn2.search_batch(
-            "select * from object_json "
+            "select * from newt "
             "where (state->>'i')::int >= %(a)s and (state->>'i')::int <= %(b)s "
             "order by zoid ",
             dict(a=2, b=90),

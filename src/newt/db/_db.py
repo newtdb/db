@@ -49,13 +49,12 @@ class Connection:
         return result
 
     def where(self, query_tail, *args, **kw):
-        return self.search("select * from object_json where " + query_tail,
+        return self.search("select * from newt where " + query_tail,
                            *args, **kw)
 
     def batch_where(self, query_tail, args, batch_start, batch_size):
-        return self.search_batch(
-            "select * from object_json where " + query_tail,
-            args, batch_start, batch_size)
+        return self.search_batch("select * from newt where " + query_tail,
+                                 args, batch_start, batch_size)
 
 def storage(dsn):
     return relstorage.storage.RelStorage(Adapter(dsn))

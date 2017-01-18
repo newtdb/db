@@ -149,29 +149,27 @@ whether its right side appears in its left side.  This sort of search
 is indexed automatically by newt.  You can also use the search method::
 
   >>> tasks = connection.search("""
-  ...     select zoid, class_pickle
-  ...     from object_json
-  ...     where state @> '{"title": "First task"}'
+  ...     select * from newt where state @> '{"title": "First task"}'
   ...     """)
 
 When using ``search``, you can compose any SQL you wish. but you the
-result must contain columns ``zoid`` and ``class_pickle``.  When you
+result must contain columns ``zoid`` and ``ghost_pickle``.  When you
 first use a database with newt, it creates a number of tables,
-including ``object_json``::
+including ``newt``::
 
-        Table "public.object_json"
+        Table "public.newt"
         Column    |  Type  | Modifiers
     --------------+--------+-----------
      zoid         | bigint | not null
      class_name   | text   |
-     class_pickle | bytea  |
+     ghost_pickle | bytea  |
      state        | jsonb  |
     Indexes:
-        "object_json_pkey" PRIMARY KEY, btree (zoid)
-        "object_json_json_idx" gin (state)
+        "newt_pkey" PRIMARY KEY, btree (zoid)
+        "newt_json_idx" gin (state)
 
 The ``zoid`` column is the database primary key. Every persistent
-object in newt has a unique zoid.  The ``class_pickle`` pickle
+object in newt has a unique zoid.  The ``ghost_pickle`` pickle
 contains minimal information to, along with ``zoid`` create newt
 objects. The ``class_name`` column contains object's class name, which
 can be useful for search.  The state column contains a JSON
@@ -217,7 +215,7 @@ database, you could use::
 
   >>> counts = connection.query_data("""
   ...     select class_name, count(*)
-  ...     from object_json
+  ...     from newt
   ...     group by class_name
   ...     order by class_name
   ...     """)

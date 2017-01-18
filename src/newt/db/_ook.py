@@ -12,7 +12,7 @@ def _ex_cursor(self, name=None):
 
 relstorage.storage.RelStorage.ex_cursor = _ex_cursor
 
-def _ex_get(self, oid, class_pickle):
+def _ex_get(self, oid, ghost_pickle):
     """Return the persistent object with oid 'oid'."""
     if self.opened is None:
         raise ConnectionStateError("The database connection is closed")
@@ -27,11 +27,7 @@ def _ex_get(self, oid, class_pickle):
     if obj is not None:
         return obj
 
-    # if class_pickle is None:
-    #     p, _ = self._storage.load(oid)
-    # else:
-    #     p = class_pickle
-    obj = self._reader.getGhost(class_pickle) # New code
+    obj = self._reader.getGhost(ghost_pickle) # New code
 
     # Avoid infiniate loop if obj tries to load its state before
     # it is added to the cache and it's state refers to it.

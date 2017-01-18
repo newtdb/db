@@ -22,7 +22,7 @@ def search(conn, query, *args, **kw):
     try:
         cursor.execute("select zoid, ghost_pickle from (%s)_" % query,
                        args or kw)
-        return [get(p64(zoid), class_pickle) for (zoid, class_pickle) in cursor]
+        return [get(p64(zoid), ghost_pickle) for (zoid, ghost_pickle) in cursor]
     finally:
         _try_to_close_cursor(cursor)
 
@@ -38,8 +38,8 @@ def search_batch(conn, query, args, batch_start, batch_size):
         cursor.execute(query, args)
         count = 0
         result = []
-        for zoid, class_pickle, count in cursor:
-            result.append(get(p64(zoid), class_pickle))
+        for zoid, ghost_pickle, count in cursor:
+            result.append(get(p64(zoid), ghost_pickle))
         return count, result
     finally:
         _try_to_close_cursor(cursor)

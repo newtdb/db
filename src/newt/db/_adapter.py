@@ -98,9 +98,9 @@ class Mover(relstorage.adapters.postgresql.mover.PostgreSQLObjectMover):
             )
 
     _move_json_sql = """
-    DELETE FROM object_json WHERE zoid IN (SELECT zoid FROM temp_store);
+    DELETE FROM newt WHERE zoid IN (SELECT zoid FROM temp_store);
 
-    INSERT INTO object_json (zoid, class_name, ghost_pickle, state)
+    INSERT INTO newt (zoid, class_name, ghost_pickle, state)
     SELECT zoid, class_name, ghost_pickle, state
     FROM temp_store_json
     """
@@ -112,26 +112,26 @@ class Mover(relstorage.adapters.postgresql.mover.PostgreSQLObjectMover):
 class SchemaInstaller(
     relstorage.adapters.postgresql.schema.PostgreSQLSchemaInstaller):
 
-    def _create_object_json(self, cursor):
+    def _create_newt(self, cursor):
         cursor.execute("""
-        create table object_json (
+        create table newt (
           zoid bigint primary key,
           class_name text,
           ghost_pickle bytea,
           state jsonb);
-        create index object_json_json_idx on object_json using gin (state);
+        create index newt_json_idx on newt using gin (state);
         """)
 
     def create(self, cursor):
         super(SchemaInstaller, self).create(cursor)
-        self._create_object_json(cursor)
+        self._create_newt(cursor)
 
     def update_schema(self, cursor, tables):
-        if 'object_json' not in tables:
-            self._create_object_json(cursor)
+        if 'newt' not in tables:
+            self._create_newt(cursor)
 
     def drop_all(self):
         def callback(_conn, cursor):
-            cursor.execute("drop table if exists object_json")
+            cursor.execute("drop table if exists newt")
         self.connmanager.open_and_call(callback)
         super(SchemaInstaller, self).drop_all()

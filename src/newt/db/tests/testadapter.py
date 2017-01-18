@@ -25,7 +25,7 @@ class AdapterTests(DBSetup, unittest.TestCase):
         # We should see the json data:
         [(class_name, ghost_pickle, state)] = conn.query_data("""\
             select class_name, ghost_pickle, state
-            from object_json where zoid = %s""",
+            from newt where zoid = %s""",
             u64(o._p_oid))
         self.assertEqual(class_name, 'newt.db._object.Object')
         self.assertEqual(pickle.loads(ghost_pickle.tobytes()), Object)
@@ -33,7 +33,7 @@ class AdapterTests(DBSetup, unittest.TestCase):
 
         [(class_name, ghost_pickle, state)] = conn.query_data("""\
             select class_name, ghost_pickle, state
-            from object_json where zoid = 0""")
+            from newt where zoid = 0""")
         self.assertEqual(class_name, 'persistent.mapping.PersistentMapping')
         self.assertEqual(pickle.loads(ghost_pickle.tobytes()),
                          persistent.mapping.PersistentMapping)
