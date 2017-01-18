@@ -1,10 +1,13 @@
 import json
+import logging
 import re
 import relstorage.adapters.postgresql
 import relstorage.adapters.postgresql.mover
 import relstorage.adapters.postgresql.schema
 
 from .jsonpickle import JsonUnpickler
+
+logger = logging.getLogger(__name__)
 
 class Adapter(relstorage.adapters.postgresql.PostgreSQLAdapter):
 
@@ -29,32 +32,41 @@ class Adapter(relstorage.adapters.postgresql.PostgreSQLAdapter):
 
 skip_class = re.compile('BTrees[.]|ZODB.blob').match
 unicode_surrogates = re.compile(r'\\ud[89a-f][0-9a-f]{2,2}', flags=re.I)
-def jsonify(data):
+NoneNoneNone = None, None, None
+def jsonify(oid, data):
     unpickler = JsonUnpickler(data)
-    klass = json.loads(unpickler.load())
-    if isinstance(klass, list):
-        klass, args = klass
+    try:
+        klass = json.loads(unpickler.load())
+
         if isinstance(klass, list):
-            class_name = '.'.join(klass)
+            klass, args = klass
+            if isinstance(klass, list):
+                class_name = '.'.join(klass)
+            else:
+                class_name = klass['name']
         else:
             class_name = klass['name']
-    else:
-        class_name = klass['name']
 
-    if skip_class(class_name):
-        return None, None, None
+        if skip_class(class_name):
+            return NoneNoneNone
 
-    ghost_pickle = data[:unpickler.pos]
-    state = unpickler.load()
-    # xstate = xform(zoid, class_name, state)
-    # if xstate is not state:
-    #     state = xstate
-    #     if not isinstance(state, bytes):
-    #         state = json.dumps(state)
+        ghost_pickle = data[:unpickler.pos]
+        state = unpickler.load()
 
-    # Remove unicode surrogate strings, as postgres utf-8
-    # will reject them.
-    state = unicode_surrogates.sub(' ', state)
+        # xstate = xform(zoid, class_name, state)
+        # if xstate is not state:
+        #     state = xstate
+        #     if not isinstance(state, bytes):
+        #         state = json.dumps(state)
+
+        # Remove unicode surrogate strings, as postgres utf-8
+        # will reject them.
+
+        state = unicode_surrogates.sub(' ', state).replace('\\u0000', ' ')
+    except Exception:
+        logger.warn("Failed pickle load, oid: %r, pickle starts: %r",
+                    oid, data[:50], exc_info=True)
+        return NoneNoneNone
 
     return class_name, ghost_pickle, state
 
@@ -73,7 +85,7 @@ class Mover(relstorage.adapters.postgresql.mover.PostgreSQLObjectMover):
 
     def store_temp(self, cursor, batcher, oid, prev_tid, data):
         super(Mover, self).store_temp(cursor, batcher, oid, prev_tid, data)
-        class_name, ghost_pickle, state = jsonify(data)
+        class_name, ghost_pickle, state = jsonify(oid, data)
         if class_name is None:
             return
         batcher.delete_from('temp_store_json', zoid=oid)
@@ -115,5 +127,11 @@ class SchemaInstaller(
         self._create_object_json(cursor)
 
     def update_schema(self, cursor, tables):
-        if object_json not in tables:
+        if 'object_json' not in tables:
             self._create_object_json(cursor)
+
+    def drop_all(self):
+        def callback(_conn, cursor):
+            cursor.execute("drop table if exists object_json")
+        self.connmanager.open_and_call(callback)
+        super(SchemaInstaller, self).drop_all()

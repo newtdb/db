@@ -1,7 +1,7 @@
 name, version = 'newt.db', '0'
 
 install_requires = ['setuptools', 'RelStorage[postgresql]', 'psycopg2', 'six']
-extras_require = dict(test=['manuel', 'mock', 'zope.testing'])
+extras_require = dict(test=['manuel', 'mock', 'zope.testing', 'zc.zlibstorage'])
 
 entry_points = """
 """

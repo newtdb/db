@@ -1,7 +1,9 @@
 Not necessarily complete list of things to do
 =============================================
 
-(mainly so I don'y forget)
+(mainly so I don't forget)
+
+- Custom transformations
 
 Medium priorities:
 

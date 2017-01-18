@@ -14,13 +14,17 @@
 import persistent.mapping
 import pickle
 import psycopg2
+from relstorage.tests import hftestbase
+from relstorage.tests import hptestbase
+from relstorage.tests import reltestbase
+
 import unittest
 
 from .. import Object
 
 from ZODB.utils import u64
 
-class AdapterTests(unittest.TestCase):
+class DBSetup(object):
 
     dbname = 'newt_test_database'
 
@@ -30,17 +34,17 @@ class AdapterTests(unittest.TestCase):
         self.base_cursor = self.base_conn.cursor()
         self.drop_db()
         self.base_cursor.execute('create database ' + self.dbname)
-        # self.conn = psycopg2.connect('dbname=' + self.dbname)
-        # self.cursor = self.conn.cursor()
-        # self.ex = self.cursor.execute
-
-    def tearDown(self):
-        # self.conn.close()
-        self.drop_db()
-        self.base_conn.close()
+        super(DBSetup, self).setUp()
 
     def drop_db(self):
         self.base_cursor.execute('drop database if exists ' + self.dbname)
+
+    def tearDown(self):
+        super(DBSetup, self).tearDown()
+        self.drop_db()
+        self.base_conn.close()
+
+class AdapterTests(DBSetup, unittest.TestCase):
 
     def test_basic(self):
         import newt.db
@@ -71,3 +75,40 @@ class AdapterTests(unittest.TestCase):
                             '::': 'persistent'}}})
 
         conn.close()
+
+# Make sure we didn't break anything:
+
+class UseAdapter(DBSetup):
+
+    def make_adapter(self, options):
+        from .._adapter import Adapter
+        return Adapter(
+            dsn='postgresql://localhost/' + self.dbname,
+            options=options,
+        )
+
+# class HPDestZODBConvertTests(UseAdapter, reltestbase.
+#                              AbstractRSDestZodbConvertTests):
+#     pass
+
+class HPTests(UseAdapter, hptestbase.HistoryPreservingRelStorageTests):
+    pass
+
+class HPToFile(UseAdapter, hptestbase.HistoryPreservingToFileStorage):
+    pass
+
+class HFTests(UseAdapter, hftestbase.HistoryFreeRelStorageTests):
+    pass
+
+class HFToFile(UseAdapter, hftestbase.HistoryFreeToFileStorage):
+    pass
+
+
+def test_suite():
+    suite = unittest.TestSuite()
+    suite.addTest(unittest.makeSuite(AdapterTests))
+    suite.addTest(unittest.makeSuite(HPTests, "check"))
+    suite.addTest(unittest.makeSuite(HPToFile, "check"))
+    suite.addTest(unittest.makeSuite(HFTests, "check"))
+    suite.addTest(unittest.makeSuite(HFToFile, "check"))
+    return suite
