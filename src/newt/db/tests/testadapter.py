@@ -1,19 +1,5 @@
-##############################################################################
-#
-# Copyright (c) Zope Foundation and Contributors.
-# All Rights Reserved.
-#
-# This software is subject to the provisions of the Zope Public License,
-# Version 2.0 (ZPL).  A copy of the ZPL should accompany this distribution.
-# THIS SOFTWARE IS PROVIDED "AS IS" AND ANY AND ALL EXPRESS OR IMPLIED
-# WARRANTIES ARE DISCLAIMED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF TITLE, MERCHANTABILITY, AGAINST INFRINGEMENT, AND FITNESS
-# FOR A PARTICULAR PURPOSE.
-#
-##############################################################################
 import persistent.mapping
 import pickle
-import psycopg2
 from relstorage.tests import hftestbase
 from relstorage.tests import hptestbase
 from relstorage.tests import reltestbase
@@ -24,31 +10,13 @@ from .. import Object
 
 from ZODB.utils import u64
 
-class DBSetup(object):
-
-    dbname = 'newt_test_database'
-
-    def setUp(self):
-        self.base_conn = psycopg2.connect('')
-        self.base_conn.autocommit = True
-        self.base_cursor = self.base_conn.cursor()
-        self.drop_db()
-        self.base_cursor.execute('create database ' + self.dbname)
-        super(DBSetup, self).setUp()
-
-    def drop_db(self):
-        self.base_cursor.execute('drop database if exists ' + self.dbname)
-
-    def tearDown(self):
-        super(DBSetup, self).tearDown()
-        self.drop_db()
-        self.base_conn.close()
+from .base import DBSetup
 
 class AdapterTests(DBSetup, unittest.TestCase):
 
     def test_basic(self):
         import newt.db
-        conn = newt.db.connection('postgresql://localhost/' + self.dbname)
+        conn = newt.db.connection(self.dsn)
 
         # Add an object:
         conn.root.x = o = Object(a=1)
