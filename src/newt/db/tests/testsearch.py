@@ -64,3 +64,160 @@ class SearchTests(DBSetup, unittest.TestCase):
 
         # We didn't end up with all of the objects getting loaded:
         self.assertEqual(len(conn2._cache), 20)
+
+    def test_create_text_index_sql(self):
+        self.assertEqual(
+            expect_simple_text,
+            self.conn.create_text_index_sql('mytext', 'text'),
+            )
+
+        self.assertEqual(
+            expect_text,
+            self.conn.create_text_index_sql('mytext', ['text', 'title']),
+            )
+
+        self.assertEqual(
+            expect_weighted_text,
+            self.conn.create_text_index_sql(
+                'mytext', 'text', ['title', 'description']),
+            )
+
+        self.assertEqual(
+            expect_more_weighted_text,
+            self.conn.create_text_index_sql(
+                'mytext',
+                'text',
+                ['title', 'description'],
+                'keywords',
+                "state ->> 'really important'"),
+            )
+
+        self.assertEqual(
+            expect_A_text,
+            self.conn.create_text_index_sql('mytext', A='text'),
+            )
+
+        self.assertRaises(TypeError, self.conn.create_text_index_sql, 'mytext')
+
+    def test_create_text_index(self):
+        self.conn.create_text_index('txt', 'text')
+        self.store('a', text='foo bar')
+        self.store('b', text='foo baz')
+        self.store('c', text='green eggs and spam')
+        self.assertEqual(
+            set((self.conn.root.a, self.conn.root.b)),
+            set(self.conn.where("txt(state) @@ 'foo'")),
+            )
+        self.assertEqual(
+            set((self.conn.root.a, )),
+            set(self.conn.where("txt(state) @@ 'foo & bar'")),
+            )
+        self.assertEqual(
+            set((self.conn.root.a, self.conn.root.c)),
+            set(self.conn.where("txt(state) @@ 'bar | green'")),
+            )
+
+expect_simple_text = """\
+create or replace function mytext(state jsonb) returns tsvector as $$
+declare
+  text text;
+  result tsvector;
+begin
+  if state is null then return null; end if;
+
+  text = coalesce(state ->> 'text', '');
+  result := to_tsvector(text);
+
+  return result;
+end
+$$ language plpgsql immutable;
+
+create index newt_mytext_idx on newt using gin (mytext(state));
+"""
+
+expect_text = """\
+create or replace function mytext(state jsonb) returns tsvector as $$
+declare
+  text text;
+  result tsvector;
+begin
+  if state is null then return null; end if;
+
+  text = coalesce(state ->> 'text', '');
+  text = text || coalesce(state ->> 'title', '');
+  result := to_tsvector(text);
+
+  return result;
+end
+$$ language plpgsql immutable;
+
+create index newt_mytext_idx on newt using gin (mytext(state));
+"""
+
+expect_weighted_text = """\
+create or replace function mytext(state jsonb) returns tsvector as $$
+declare
+  text text;
+  result tsvector;
+begin
+  if state is null then return null; end if;
+
+  text = coalesce(state ->> 'text', '');
+  result := to_tsvector(text);
+
+  text = coalesce(state ->> 'title', '');
+  text = text || coalesce(state ->> 'description', '');
+  result := result || setweight(to_tsvector(text), 'C');
+
+  return result;
+end
+$$ language plpgsql immutable;
+
+create index newt_mytext_idx on newt using gin (mytext(state));
+"""
+
+expect_more_weighted_text = """\
+create or replace function mytext(state jsonb) returns tsvector as $$
+declare
+  text text;
+  result tsvector;
+begin
+  if state is null then return null; end if;
+
+  text = coalesce(state ->> 'text', '');
+  result := to_tsvector(text);
+
+  text = coalesce(state ->> 'title', '');
+  text = text || coalesce(state ->> 'description', '');
+  result := result || setweight(to_tsvector(text), 'C');
+
+  text = coalesce(state ->> 'keywords', '');
+  result := result || setweight(to_tsvector(text), 'B');
+
+  text = coalesce(state ->> 'really important', '');
+  result := result || setweight(to_tsvector(text), 'A');
+
+  return result;
+end
+$$ language plpgsql immutable;
+
+create index newt_mytext_idx on newt using gin (mytext(state));
+"""
+
+expect_A_text = """\
+create or replace function mytext(state jsonb) returns tsvector as $$
+declare
+  text text;
+  result tsvector;
+begin
+  if state is null then return null; end if;
+
+  text = coalesce(state ->> 'text', '');
+  result := setweight(to_tsvector(text), 'A');
+
+  return result;
+end
+$$ language plpgsql immutable;
+
+create index newt_mytext_idx on newt using gin (mytext(state));
+"""

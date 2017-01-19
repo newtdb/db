@@ -3,6 +3,7 @@ import psycopg2
 class DBSetup(object):
 
     dbname = 'newt_test_database'
+    maxDiff = None
 
     @property
     def dsn(self):

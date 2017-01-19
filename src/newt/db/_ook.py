@@ -12,6 +12,11 @@ def _ex_cursor(self, name=None):
 
 relstorage.storage.RelStorage.ex_cursor = _ex_cursor
 
+def _ex_connect(self):
+    return self._adapter.connmanager.open()
+
+relstorage.storage.RelStorage.ex_connect = _ex_connect
+
 def _ex_get(self, oid, ghost_pickle):
     """Return the persistent object with oid 'oid'."""
     if self.opened is None:

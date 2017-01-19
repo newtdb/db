@@ -17,6 +17,8 @@ class NewtDB:
 class Connection:
 
     from ._search import search, search_batch
+    from ._search import create_text_index, create_text_index_sql
+    create_text_index_sql = staticmethod(create_text_index_sql)
 
     def __init__(self, connection):
         self._connection = connection # A ZODB connection
