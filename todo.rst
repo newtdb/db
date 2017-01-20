@@ -1,11 +1,18 @@
 Not necessarily complete list of things to do
 =============================================
 
-(mainly so I don't forget)
+(mainly so I don't forget, and because issues are kinda heavy, at
+least at this point)
+
+- Travis
+
+- Measure w shootout
+
+Medium priorities:
 
 - Custom transformations
 
-Medium priorities:
+- Async support
 
 - ZConfig directive for use of adapter in existing RelStorage apps.
 

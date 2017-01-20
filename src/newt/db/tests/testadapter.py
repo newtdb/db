@@ -1,5 +1,7 @@
 import persistent.mapping
+import os
 import pickle
+import relstorage.tests
 from relstorage.tests import hftestbase
 from relstorage.tests import hptestbase
 from relstorage.tests import reltestbase
@@ -50,25 +52,106 @@ class UseAdapter(DBSetup):
 
     def make_adapter(self, options):
         from .._adapter import Adapter
-        return Adapter(
-            dsn='postgresql://localhost/' + self.dbname,
-            options=options,
-        )
+        return Adapter(dsn=self.dsn, options=options)
 
-# class HPDestZODBConvertTests(UseAdapter, reltestbase.
-#                              AbstractRSDestZodbConvertTests):
-#     pass
+    def _relstorage_contents(self):
+        return """\
+        %%import newt.db
+        <newt>
+          <postgresql>
+            dsn %s
+          </postgresql>
+        </newt>
+        """ % self.dsn
 
-class HPTests(UseAdapter, hptestbase.HistoryPreservingRelStorageTests):
+class ZConfigTests(object):
+
+    def checkConfigureViaZConfig(self):
+        replica_conf = os.path.join(os.path.dirname(relstorage.tests.__file__),
+                                    'replicas.conf')
+        dsn = 'dbname=' + self.dbname
+        conf = u"""
+        %%import relstorage
+        %%import newt.db
+        <zodb main>
+            <relstorage>
+            name xyz
+            read-only false
+            keep-history %s
+            replica-conf %s
+            blob-chunk-size 10MB
+            <newt>
+            <postgresql>
+                driver auto
+                dsn %s
+            </postgresql>
+            </newt>
+            </relstorage>
+        </zodb>
+        """ % (
+            self.keep_history and 'true' or 'false',
+            replica_conf,
+            dsn,
+            )
+
+        schema_xml = u"""
+        <schema>
+        <import package="ZODB"/>
+        <section type="ZODB.database" name="main" attribute="database"/>
+        </schema>
+        """
+        import ZConfig
+        from io import StringIO
+        schema = ZConfig.loadSchemaFile(StringIO(schema_xml))
+        config, _ = ZConfig.loadConfigFile(schema, StringIO(conf))
+
+        db = config.database.open()
+        try:
+            storage = db.storage
+            self.assertEqual(storage.isReadOnly(), False)
+            self.assertEqual(storage.getName(), "xyz")
+            adapter = storage._adapter
+            from relstorage.adapters.postgresql import PostgreSQLAdapter
+            self.assertIsInstance(adapter, PostgreSQLAdapter)
+            self.assertEqual(adapter._dsn, dsn)
+            self.assertEqual(adapter.keep_history, self.keep_history)
+            self.assertEqual(
+                adapter.connmanager.replica_selector.replica_conf,
+                replica_conf)
+            self.assertEqual(storage._options.blob_chunk_size, 10485760)
+
+            from .._adapter import Adapter
+            self.assertEqual(Adapter, storage._adapter.__class__)
+        finally:
+            db.close()
+
+
+class HPDestZODBConvertTests(UseAdapter,
+                             reltestbase.AbstractRSDestZodbConvertTests):
+    pass
+
+class HPSrcZODBConvertTests(UseAdapter,
+                            reltestbase.AbstractRSSrcZodbConvertTests):
+    pass
+
+class HPTests(UseAdapter,
+              hptestbase.HistoryPreservingRelStorageTests,
+              ZConfigTests):
     pass
 
 class HPToFile(UseAdapter, hptestbase.HistoryPreservingToFileStorage):
     pass
 
-class HFTests(UseAdapter, hftestbase.HistoryFreeRelStorageTests):
+class HPFromFile(UseAdapter, hptestbase.HistoryPreservingFromFileStorage):
+    pass
+
+class HFTests(UseAdapter, hftestbase.HistoryFreeRelStorageTests, ZConfigTests):
     pass
 
 class HFToFile(UseAdapter, hftestbase.HistoryFreeToFileStorage):
+    pass
+
+class HFFromFile(UseAdapter, hftestbase.HistoryFreeFromFileStorage):
     pass
 
 
@@ -77,6 +160,10 @@ def test_suite():
     suite.addTest(unittest.makeSuite(AdapterTests))
     suite.addTest(unittest.makeSuite(HPTests, "check"))
     suite.addTest(unittest.makeSuite(HPToFile, "check"))
+    suite.addTest(unittest.makeSuite(HPFromFile, "check"))
     suite.addTest(unittest.makeSuite(HFTests, "check"))
     suite.addTest(unittest.makeSuite(HFToFile, "check"))
+    suite.addTest(unittest.makeSuite(HFFromFile, "check"))
+    suite.addTest(unittest.makeSuite(HPDestZODBConvertTests))
+    suite.addTest(unittest.makeSuite(HPSrcZODBConvertTests))
     return suite
