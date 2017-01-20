@@ -34,6 +34,8 @@ skip_class = re.compile('BTrees[.]|ZODB.blob').match
 unicode_surrogates = re.compile(r'\\ud[89a-f][0-9a-f]{2,2}', flags=re.I)
 NoneNoneNone = None, None, None
 def jsonify(oid, data):
+    if not data:
+        return NoneNoneNone
     unpickler = JsonUnpickler(data)
     try:
         klass = json.loads(unpickler.load())
@@ -108,6 +110,20 @@ class Mover(relstorage.adapters.postgresql.mover.PostgreSQLObjectMover):
     def move_from_temp(self, cursor, tid, txn_has_blobs):
         cursor.execute(self._move_json_sql)
         return super(Mover, self).move_from_temp(cursor, tid, txn_has_blobs)
+
+    def restore(self, cursor, batcher, oid, tid, data):
+        super(Mover, self).restore(cursor, batcher, oid, tid, data)
+        class_name, ghost_pickle, state = jsonify(oid, data)
+        if class_name is None:
+            return
+        batcher.delete_from('newt', zoid=oid)
+        batcher.insert_into(
+            "newt (zoid, class_name, ghost_pickle, state)",
+            "%s, %s, %s, %s",
+            (oid, class_name, self.Binary(ghost_pickle), state),
+            rowkey=oid,
+            size=len(state),
+            )
 
 class SchemaInstaller(
     relstorage.adapters.postgresql.schema.PostgreSQLSchemaInstaller):

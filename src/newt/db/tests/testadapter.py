@@ -6,13 +6,15 @@ import relstorage.tests
 from relstorage.tests import hftestbase
 from relstorage.tests import hptestbase
 from relstorage.tests import reltestbase
+import ZODB
 from ZODB.tests.util import MininalTestLayer
+from ZODB.utils import u64
 
 import unittest
 
 from .. import Object
 
-from ZODB.utils import u64
+
 
 from .base import DBSetup
 
@@ -20,14 +22,7 @@ class AdapterTests(DBSetup, unittest.TestCase):
 
     layer = MininalTestLayer('AdapterTests')
 
-    def test_basic(self):
-        import newt.db
-        conn = newt.db.connection(self.dsn)
-
-        # Add an object:
-        conn.root.x = o = Object(a=1)
-        conn.commit()
-
+    def __assertBasicData(self, conn, o):
         # We should see the json data:
         [(class_name, ghost_pickle, state)] = conn.query_data("""\
             select class_name, ghost_pickle, state
@@ -48,7 +43,34 @@ class AdapterTests(DBSetup, unittest.TestCase):
             {'data': {'x': {'id': [1, 'newt.db._object.Object'],
                             '::': 'persistent'}}})
 
+    def test_basic(self):
+        import newt.db
+        conn = newt.db.connection(self.dsn)
+
+        # Add an object:
+        conn.root.x = o = Object(a=1)
+        conn.commit()
+
+        self.__assertBasicData(conn, o)
+
         conn.close()
+
+    def test_restore(self):
+        source_db = ZODB.DB(None)
+        source_conn = source_db.open()
+        source_conn.root.x = o = Object(a=1)
+        source_conn.transaction_manager.commit()
+
+        import newt.db
+        conn = newt.db.connection(self.dsn)
+        conn.db().storage.copyTransactionsFrom(source_db.storage)
+
+        conn.sync()
+        self.__assertBasicData(conn, o)
+
+        conn.close()
+        source_db.close()
+
 
 # Make sure we didn't break anything:
 
