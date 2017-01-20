@@ -195,9 +195,10 @@ class JsonUnpicklerProtocol0Tests(unittest.TestCase):
         got = json.loads(JsonUnpickler(pickle.dumps(c, self.proto)).load())
         self.assertEqual(got.pop('::id'), got['state']['c'].pop('id'))
         self.assertEqual(
-            got, {"::": "newt.db.tests.testjsonpickle." + cls.__name__,
-                  "state": {"c": {"::": "ref"},
-                            "name": "c"}})
+            {"::": "newt.db.tests.testjsonpickle." + cls.__name__,
+             "state": {"c": {"::": "ref"},
+                       "name": "c"}},
+            got)
 
     def test_cyclic_instance(self):
         self.test_cyclic_object(I)

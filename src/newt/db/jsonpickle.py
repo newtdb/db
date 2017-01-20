@@ -119,8 +119,9 @@ class Put(Get):
     def extend(self, v):
         self.v.extend(v)
 
-    def __nonzero__(self):
+    def __bool__(self):
         return bool(self.v)
+    __nonzero__ = __bool__
 
     def json_reduce(self):
         v = self.v
@@ -356,7 +357,12 @@ class JsonUnpickler:
 
     def NEWOBJ_EX(self, _):
         cls, args, kw = self.pop(3)
-        self.append(instance(cls, (args, kw)))
+        if kw:
+            if args:
+                args = args, kw
+            else:
+                args = kw
+        self.append(instance(cls, args))
 
     def PROTO(self, _): pass
     def FRAME(self, _): pass
