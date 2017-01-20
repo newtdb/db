@@ -8,9 +8,9 @@ python:
   - 3.6
   - 2.7
   - 3.5
-  - 3.3
+  - 3.4
 install:
-  - pip install zc.buildout
+  - pip install -U pip setuptools zc.buildout
   - buildout parts=test
 script: bin/test -v1j99
 cache:
