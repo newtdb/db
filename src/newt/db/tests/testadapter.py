@@ -6,6 +6,7 @@ import relstorage.tests
 from relstorage.tests import hftestbase
 from relstorage.tests import hptestbase
 from relstorage.tests import reltestbase
+from ZODB.tests.util import MininalTestLayer
 
 import unittest
 
@@ -16,6 +17,8 @@ from ZODB.utils import u64
 from .base import DBSetup
 
 class AdapterTests(DBSetup, unittest.TestCase):
+
+    layer = MininalTestLayer('AdapterTests')
 
     def test_basic(self):
         import newt.db
@@ -129,31 +132,32 @@ class ZConfigTests(object):
 
 class HPDestZODBConvertTests(UseAdapter,
                              reltestbase.AbstractRSDestZodbConvertTests):
-    pass
+    layer = MininalTestLayer('HPDestZODBConvertTests')
+
 
 class HPSrcZODBConvertTests(UseAdapter,
                             reltestbase.AbstractRSSrcZodbConvertTests):
-    pass
+    layer = MininalTestLayer('HPSrcZODBConvertTests')
 
 class HPTests(UseAdapter,
               hptestbase.HistoryPreservingRelStorageTests,
               ZConfigTests):
-    pass
+    layer = MininalTestLayer('HPTests')
 
 class HPToFile(UseAdapter, hptestbase.HistoryPreservingToFileStorage):
-    pass
+    layer = MininalTestLayer('HPToFile')
 
 class HPFromFile(UseAdapter, hptestbase.HistoryPreservingFromFileStorage):
-    pass
+    layer = MininalTestLayer('HPFromFile')
 
 class HFTests(UseAdapter, hftestbase.HistoryFreeRelStorageTests, ZConfigTests):
-    pass
+    layer = MininalTestLayer('HFTests')
 
 class HFToFile(UseAdapter, hftestbase.HistoryFreeToFileStorage):
-    pass
+    layer = MininalTestLayer('HFToFile')
 
 class HFFromFile(UseAdapter, hftestbase.HistoryFreeFromFileStorage):
-    pass
+    layer = MininalTestLayer('HFFromFile')
 
 
 def test_suite():

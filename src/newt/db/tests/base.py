@@ -2,7 +2,6 @@ import psycopg2
 
 class DBSetup(object):
 
-    dbname = 'newt_test_database'
     maxDiff = None
 
     @property
@@ -10,6 +9,7 @@ class DBSetup(object):
         return 'postgresql://localhost/' + self.dbname
 
     def setUp(self):
+        self.dbname = self.__class__.__name__.lower() + '_newt_test_database'
         self.base_conn = psycopg2.connect('')
         self.base_conn.autocommit = True
         self.base_cursor = self.base_conn.cursor()
