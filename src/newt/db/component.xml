@@ -1,0 +1,10 @@
+<component prefix="newt.db.component">
+  <import package="relstorage" />
+  <sectiontype
+      name="newt"
+      implements="relstorage.adapter"
+      datatype=".Adapter"
+      >
+    <section type="relstorage.adapter" name="*" attribute="adapter"/>
+  </sectiontype>
+</component>
