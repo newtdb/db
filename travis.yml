@@ -1,0 +1,21 @@
+language: python
+sudo: false
+services:
+  - postgresql
+addons:
+  postgresql: "9.4"
+python:
+  - 3.6
+  - 2.7
+  - 3.5
+  - 3.3
+install:
+  - pip install zc.buildout
+  - buildout parts=test
+script: bin/test -v1j99
+cache:
+  directories:
+    - $HOME/.cache/pip
+    - eggs
+before_cache:
+    - rm -f $HOME/.cache/pip/log/debug.log
