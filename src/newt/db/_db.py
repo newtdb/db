@@ -1,4 +1,5 @@
 import relstorage.storage
+import relstorage.options
 import ZODB
 
 from ._adapter import Adapter
@@ -58,13 +59,46 @@ class Connection:
         return self.search_batch("select * from newt where " + query_tail,
                                  args, batch_start, batch_size)
 
-def storage(dsn):
-    return relstorage.storage.RelStorage(Adapter(dsn))
+def _split_options(
+    # DB options
+    pool_size=7,
+    pool_timeout=1<<31,
+    cache_size=400,
+    cache_size_bytes=0,
+    historical_pool_size=3,
+    historical_cache_size=1000,
+    historical_cache_size_bytes=0,
+    historical_timeout=300,
+    database_name='unnamed',
+    databases=None,
+    xrefs=True,
+    large_record_size=1<<24,
+    **storage_options):
+    return dict(
+        pool_size=pool_size,
+        pool_timeout=pool_timeout,
+        cache_size=cache_size,
+        cache_size_bytes=cache_size_bytes,
+        historical_pool_size=historical_pool_size,
+        historical_cache_size=historical_cache_size,
+        historical_cache_size_bytes=historical_cache_size_bytes,
+        historical_timeout=historical_timeout,
+        database_name=database_name,
+        databases=databases,
+            xrefs=xrefs,
+        large_record_size=large_record_size,
+        ), storage_options
+
+def storage(dsn, keep_history=False, **kw):
+    options = relstorage.options.Options(keep_history=keep_history, **kw)
+    return relstorage.storage.RelStorage(Adapter(dsn, options), options=options)
 
 def DB(dsn, **kw):
-    return NewtDB(ZODB.DB(storage(dsn), **kw))
+    db_options, storage_options = _split_options()
+    return NewtDB(ZODB.DB(storage(dsn, **storage_options), **db_options))
 
 def connection(dsn, **kw):
-    return Connection(ZODB.connection(storage(dsn), **kw))
-
-
+    db_options, storage_options = _split_options()
+    return Connection(
+        ZODB.connection(storage(dsn, **storage_options), **db_options)
+        )
