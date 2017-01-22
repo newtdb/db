@@ -62,10 +62,12 @@ class AdapterTests(DBSetup, unittest.TestCase):
         source_conn.transaction_manager.commit()
 
         import newt.db
-        conn = newt.db.connection(self.dsn)
-        conn.db().storage.copyTransactionsFrom(source_db.storage)
 
-        conn.sync()
+        storage = newt.db.storage(self.dsn)
+        storage.copyTransactionsFrom(source_db.storage)
+        storage.close()
+
+        conn = newt.db.connection(self.dsn)
         self.__assertBasicData(conn, o)
 
         conn.close()
