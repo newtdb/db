@@ -92,10 +92,10 @@ we ask for SQL statements to index title fields::
 
 
 A `PL/pgSQL
-<https://www.postgresql.org/docs/current/static/plpgsql.html>`_ is
-generated that extracts the title from the JSON.  Then an index is
-created using the function. To learn more about full-text search in
-Postgres, see::
+<https://www.postgresql.org/docs/current/static/plpgsql.html>`_
+function is generated that extracts the title from the JSON.  Then an
+index is created using the function. To learn more about full-text
+search in Postgres, see::
 
   https://www.postgresql.org/docs/current/static/textsearch.html
 
