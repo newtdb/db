@@ -53,11 +53,6 @@ see:
 
   http://www.zodb.org/en/latest/guide/writing-persistent-objects.html
 
-When designing queries for your application, you'll want to experiment
-and learn how to use the Postgres `EXPLAIN
-<https://www.postgresql.org/docs/current/static/using-explain.html>`_
-command.
-
 Learn about indexing and querying Postgresql
 ============================================
 
@@ -110,6 +105,11 @@ index [#maybe-match]_.
 
 Indexing expressions allows a lot of power, especially when working
 with JSON data.
+
+When designing queries for your application, you'll want to experiment
+and learn how to use the Postgres `EXPLAIN
+<https://www.postgresql.org/docs/current/static/using-explain.html>`_
+command.
 
 Transactions
 ============
