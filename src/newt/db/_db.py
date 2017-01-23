@@ -31,16 +31,16 @@ class Connection:
     search.__doc__ = _search.search.__doc__
 
     def search_batch(self, query, args, batch_start, batch_size):
-        return _search.search_batch(self, query, *args, **kw)
+        return _search.search_batch(self, query, args, batch_start, batch_size)
 
     search_batch.__doc__ = _search.search_batch.__doc__
 
-    def create_text_index(self, fname, D, C=None, B=None, A=None):
+    def create_text_index(self, fname, D=None, C=None, B=None, A=None):
         return _search.create_text_index(self, fname, D, C, B, A)
     create_text_index.__doc__ = _search.create_text_index.__doc__
 
     @staticmethod
-    def create_text_index_sql(fname, D, C=None, B=None, A=None):
+    def create_text_index_sql(fname, D=None, C=None, B=None, A=None):
         return _search.create_text_index_sql(fname, D, C, B, A)
     create_text_index_sql.__doc__ = _search.create_text_index_sql.__doc__
 
