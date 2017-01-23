@@ -1,5 +1,7 @@
 <component prefix="newt.db.component">
+  <import package="ZODB" />
   <import package="relstorage" />
+
   <sectiontype
       name="newt"
       implements="relstorage.adapter"
@@ -7,4 +9,13 @@
       >
     <section type="relstorage.adapter" name="*" attribute="adapter"/>
   </sectiontype>
+
+  <sectiontype
+      name="newtdb"
+      implements="ZODB.database"
+      datatype=".DB"
+      >
+    <section type="ZODB.database" name="*" attribute="db"/>
+  </sectiontype>
+
 </component>
