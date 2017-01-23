@@ -106,7 +106,7 @@ function as well::
 
 In this query, the function, ``title_text(state)`` isn't evaluated
 but is instead used to match the search term against the
-index [#maybe-match].
+index [#maybe-match]_.
 
 Indexing expressions allows a lot of power, especially when working
 with JSON data.
