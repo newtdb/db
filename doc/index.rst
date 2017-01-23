@@ -22,6 +22,10 @@ Learn more:
 
 - :doc:`How it works <how-it-works>`
 
+- :doc:`Fine print <fine-print>`
+
 - :doc:`Topics <topics>`
 
 - :doc:`Reference <reference>`
+
+- :doc:`Roadmap <roadmap>`

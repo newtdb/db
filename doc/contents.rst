@@ -14,8 +14,10 @@ Contents:
    index
    getting-started
    how-it-works
+   fine-print
    topics
    reference
+   roadmap
 
 
 Indices and tables
