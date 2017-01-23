@@ -27,7 +27,7 @@ natural as working with objects in memory.  This is done in two ways:
    they're accessed next.
 
 2. Object accesses and changes are detected my observing attribute
-   access.  This works well for accesses, but can miss updated. For
+   access.  This works very well for accesses, but can miss updates. For
    example, consider this class::
 
      class Tasks(newt.db.Persistent):
