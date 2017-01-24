@@ -21,7 +21,6 @@ class DBConfigTest(DBSetup, unittest.TestCase):
     def test_just_relstorage(self):
         db = databaseFromString("""\
             %%import newt.db
-            %%import relstorage
 
             <newtdb foo>
               <zodb>
@@ -46,7 +45,6 @@ class DBConfigTest(DBSetup, unittest.TestCase):
     def test_newt(self):
         db = databaseFromString("""\
             %%import newt.db
-            %%import relstorage
 
             <newtdb foo>
               <zodb>
