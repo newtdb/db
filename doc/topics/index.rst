@@ -7,5 +7,6 @@ Newt DB Topics
 
    connection-strings
    text-configuration
+   schemas
 
 .. todo:
