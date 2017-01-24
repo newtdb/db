@@ -2,6 +2,8 @@
 Getting started with Newt DB
 ============================
 
+.. contents::
+
 You'll need a Postgres Database server. You can `install one yourself
 <https://www.postgresql.org/download/>`_ or you can use a `hosted Postgres server <https://www.google.com/search?q=postgres+as+a+service>`_.
 
@@ -25,7 +27,7 @@ database.  You can also supply a :doc:`connection string
 The connection has a root object:
 
   >>> connection.root
-  {}
+  <root: >
 
 This is the starting point for adding objects to the database.
 
@@ -206,6 +208,26 @@ the Postgresql code to create them::
   ...           'mytext', ['title', 'description', 'text'])
 
 You can customize the returned code or just view it to see how it works.
+
+
+Query errors
+------------
+
+If you enter an invalid query and then retry, you may get an error
+like: "InternalError: current transaction is aborted, commands ignored
+until end of transaction block".  If this happens, you'll need to
+abort the current transaction::
+
+  >>> connection.abort()
+
+After that, you should be able to query again.
+
+You can only search committed data
+----------------------------------
+
+If you change objects, you won't see the changes in search results
+until changes are committed, because data aren't written to Postgres
+until the transaction is committed.
 
 Raw queries
 -----------
