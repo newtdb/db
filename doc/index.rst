@@ -24,7 +24,7 @@ Learn more:
 
 - :doc:`Fine print <fine-print>`
 
-- :doc:`Topics <topics>`
+- :doc:`Topics <topics/index>`
 
 - :doc:`Reference <reference>`
 

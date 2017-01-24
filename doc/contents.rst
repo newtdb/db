@@ -15,7 +15,7 @@ Contents:
    getting-started
    how-it-works
    fine-print
-   topics
+   topics/index
    reference
    roadmap
 

@@ -19,7 +19,8 @@ From Python, to get started::
   >>> connection = newt.db.connection('')
 
 In this example, we've asked newt to connect to the default Postgres
-database.  You can also supply a database name, or a :ref:`connection string`.
+database.  You can also supply a :doc:`connection string
+<topics/connection-strings>`.
 
 The connection has a root object:
 
@@ -224,7 +225,7 @@ Learning more
 =============
 
 To learn more about newt, see the newt topics and the newt
-:doc:`topics <topics>` and :doc:`reference <reference>`.
+:doc:`topics <topics/index>` and :doc:`reference <reference>`.
 
 
 .. [#persistent] Newt makes ``Persistent`` available as an attribute,
