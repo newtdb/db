@@ -18,7 +18,7 @@ Contents:
    topics/index
    reference
    roadmap
-
+   community
 
 Indices and tables
 ==================
