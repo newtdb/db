@@ -39,10 +39,10 @@ class Connection:
         return _search.create_text_index(self, fname, D, C, B, A)
     create_text_index.__doc__ = _search.create_text_index.__doc__
 
-    @staticmethod
     def create_text_index_sql(fname, D=None, C=None, B=None, A=None):
         return _search.create_text_index_sql(fname, D, C, B, A)
     create_text_index_sql.__doc__ = _search.create_text_index_sql.__doc__
+    create_text_index_sql = staticmethod(create_text_index_sql)
 
     def __init__(self, connection):
         self._connection = connection # A ZODB connection
