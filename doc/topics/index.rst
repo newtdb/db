@@ -8,5 +8,6 @@ Newt DB Topics
    connection-strings
    text-configuration
    schemas
+   for-zodb-users
 
 .. todo:
