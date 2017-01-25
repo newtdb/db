@@ -28,7 +28,7 @@ Here's an example text configuration for Newt DB::
   </newtdb>
 
 The syntax used is based on the syntax used by web servers such as
-Apache and NGINX.  Elements, in angle brackets identify configuration
+Apache.  Elements, in angle brackets identify configuration
 objects with name-value pairs inside elements to specify options.
 Optional indentation indicates containment relationships and element
 start and end tags must appear on their own lines.
