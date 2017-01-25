@@ -7,8 +7,9 @@ Newt DB Topics
 
    connection-strings
    text-configuration
+   admin
    schemas
    for-zodb-users
-   admin
+   following
 
 .. todo:

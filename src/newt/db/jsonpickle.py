@@ -2,23 +2,19 @@
 
 The goal of the conversion is to produce JSON that is useful for
 indexing, querying and reporting in external systems like Postgres and
-Elastic Search.
-
-Usage:
-
->>> apickle = pickle.dumps([1,2])
->>> unpickler = JsonUnpickler(apickle)
->>> json_string = unpickler.load()
->>> unpickler.pos == len(apickle)
-True
+Elasticsearch.
 """
 import binascii
 from six.moves import copyreg
 import _codecs
 import datetime
 import json
+import logging
 import pickletools
+import re
 from struct import unpack
+
+logger = logging.getLogger(__name__)
 
 class Bytes(object):
 
@@ -190,6 +186,16 @@ def default(ob):
                 return {'::': 'hex', 'hex': binascii.b2a_hex(ob)}
 
 class JsonUnpickler:
+    """Unpickler that returns JSON
+
+    Usage::
+
+      >>> apickle = pickle.dumps([1,2])
+      >>> unpickler = JsonUnpickler(apickle)
+      >>> json_string = unpickler.load()
+      >>> unpickler.pos == len(apickle)
+      True
+    """
 
     cyclic = False
 
@@ -380,3 +386,83 @@ class JsonUnpickler:
 
     def BINPERSID(self, _):
         self.stack[-1] = Persistent(self.stack[-1])
+
+
+unicode_surrogates = re.compile(r'\\ud[89a-f][0-9a-f]{2,2}', flags=re.I)
+NoneNoneNone = None, None, None
+
+class Jsonifier:
+
+    skip_class = re.compile('BTrees[.]|ZODB.blob').match
+
+    def __init__(self, skip_class=None):
+        """Create a callable for converting database data to Newt JSON
+
+        Parameters:
+
+        skip_class
+          A callable that will be called with the class name extracted
+          from the data.  If the callable returns a true value, then data
+          won't be converted to JSON and ``(None, None, None)`` are
+          returned.  The default skips objects from the ``BTrees`` package and
+          blobs.
+        """
+        if skip_class is not None:
+            self.skip_class = skip_class
+
+    def __call__(self, id, data):
+        """Convert data from a ZODB data record to data used by newt.
+
+        The data returned is a class name, ghost pickle, and state triple.
+        The state is a JSON-formatted string.  The ghost pickle is a
+        binary string that can be used to create a ZODB ghost object.
+
+        If there is an error converting data, if the data is empty, or
+        if the skip_class function returns a true value, then
+        ``(None, None, None)`` is returned.
+
+        Parameters:
+
+        id
+          A data identifier (e.g. an object id) used when logging errors.
+
+        data
+          Pickle data to be converted.
+        """
+        if not data:
+            return NoneNoneNone
+        unpickler = JsonUnpickler(data)
+        try:
+            klass = json.loads(unpickler.load())
+
+            if isinstance(klass, list):
+                klass, args = klass
+                if isinstance(klass, list):
+                    class_name = '.'.join(klass)
+                else:
+                    class_name = klass['name']
+            else:
+                class_name = klass['name']
+
+            if self.skip_class(class_name):
+                return NoneNoneNone
+
+            ghost_pickle = data[:unpickler.pos]
+            state = unpickler.load()
+
+            # xstate = xform(zoid, class_name, state)
+            # if xstate is not state:
+            #     state = xstate
+            #     if not isinstance(state, bytes):
+            #         state = json.dumps(state)
+
+            # Remove unicode surrogate strings, as postgres utf-8
+            # will reject them.
+
+            state = unicode_surrogates.sub(' ', state).replace('\\u0000', ' ')
+        except Exception:
+            logger.error("Failed pickle load, oid: %r, pickle starts: %r",
+                         id, data[:50], exc_info=True)
+            return NoneNoneNone
+
+        return class_name, ghost_pickle, state
