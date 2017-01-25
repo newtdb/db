@@ -8,7 +8,7 @@ projects with years of production experience.
 
 ZODB is an object-oriented database for Python.  It provides
 transparent object persistence.  ZODB has a pluggable storage layer
-and newt leverages `RelStorage
+and Newt leverages `RelStorage
 <http://relstorage.readthedocs.io/en/latest/>`_ to store data in
 Postgres.
 
@@ -25,9 +25,9 @@ Newt adds a search API for searching the Postgres JSON data and
 returning persistent objects.  It also provides a convenience API for
 raw data searches.
 
-Finally, newt adds additional convenience APIs to more directly support
+Finally, Newt adds additional convenience APIs to more directly support
 it's intended audience.  These are intended to augment but not hide
 ZODB and RelStorage.  Some of these are just aliases.  It will be
-possible to integrate new with existing ZODB applications.
+possible to integrate Newt with existing ZODB applications.
 
 

@@ -11,8 +11,8 @@ Next, install newt.db::
 
   pip install newt.db
 
-You'll eventually want to create dedicated database and database user for
-newt's use, but if you've installed Postgres locally, you can just use
+You'll eventually want to create a dedicated database and database user for
+Newt's use, but if you've installed Postgres locally, you can just use
 the default database.
 
 From Python, to get started::
@@ -20,11 +20,11 @@ From Python, to get started::
   >>> import newt.db
   >>> connection = newt.db.connection('')
 
-In this example, we've asked newt to connect to the default Postgres
+In this example, we've asked Newt to connect to the default Postgres
 database.  You can also supply a :doc:`connection string
 <topics/connection-strings>`.
 
-The connection has a root object:
+The connection has a root object::
 
   >>> connection.root
   <root: >
@@ -35,11 +35,11 @@ To add data, we simply add objects to the root, directly::
 
   >>> connection.root.first = newt.db.Object(name='My first object')
 
-Or indirect, as a subobject::
+Or indirectly, as a subobject::
 
   >>> connection.root.first.child = newt.db.Object(name='First child')
 
-When we're ready to save our data, we need to tell newt to commit the
+When we're ready to save our data, we need to tell Newt to commit the
 changes::
 
   >>> connection.commit()
@@ -71,10 +71,10 @@ Normally, you'd create application-specific objects by subclassing
 
 The ``Persistent`` base class helps track object changes. When we
 modify an object, by setting an attribute, the object is marked as
-changed, so that newt will write it to the database when your
+changed, so that Newt will write it to the database when your
 application commits changes.
 
-With a class like the one above, we can add tasks to the database:
+With a class like the one above, we can add tasks to the database::
 
    >>> conn.root.task = Task("First task", "Explain collections")
    >>> connection.commit()
@@ -94,12 +94,12 @@ create a task list::
     def add(self, task):
         self.tasks.append(task)
 
-Then when setting up our database, we'd do something like:
+Then when setting up our database, we'd do something like::
 
   >>> connection.root.tasks = TasksList()
   >>> connection.commit()
 
-In the TaskList class, we using a ``List`` object. This is similar to
+In the ``TaskList`` class, we using a ``List`` object. This is similar to
 a Python list, except that, like the ``Persistent`` base class, it
 tracks changes so they're saved when your application commits changes.
 
@@ -127,7 +127,7 @@ large, they spread their data over multiple database records, reducing
 the amount of data read and written and allowing collections that
 would be too large to keep in memory at once.
 
-With this, building up the database could look like:
+With this, building up the database could look like::
 
     >>> connection.root.lists = TaskLists()
     >>> connection.root.lists.add('docs', TaskList())
@@ -141,23 +141,23 @@ of the database by traversing from object to object.
 Searching
 =========
 
-Newt leverages Postgresql's powerful index and search
-capabilities. The simplest way to search is with a connections
+Newt leverages PostgreSQL's powerful index and search
+capabilities. The simplest way to search is with a connection's
 ``where`` method::
 
   >>> tasks = connection.where("""state @> '{"title": "First task"}'""")
 
 The search above used a Postgres JSON ``@>`` operator that tests
 whether its right side appears in its left side.  This sort of search
-is indexed automatically by newt.  You can also use the search method::
+is indexed automatically by newt.  You can also use the ``search`` method::
 
   >>> tasks = connection.search("""
   ...     select * from newt where state @> '{"title": "First task"}'
   ...     """)
 
-When using ``search``, you can compose any SQL you wish. but you the
+When using ``search``, you can compose any SQL you wish, but the
 result must contain columns ``zoid`` and ``ghost_pickle``.  When you
-first use a database with newt, it creates a number of tables,
+first use a database with Newt, it creates a number of tables,
 including ``newt``::
 
         Table "public.newt"
@@ -172,14 +172,14 @@ including ``newt``::
         "newt_json_idx" gin (state)
 
 The ``zoid`` column is the database primary key. Every persistent
-object in newt has a unique zoid.  The ``ghost_pickle`` pickle
+object in Newt has a unique zoid.  The ``ghost_pickle`` pickle
 contains minimal information to, along with ``zoid`` create newt
 objects. The ``class_name`` column contains object's class name, which
-can be useful for search.  The state column contains a JSON
+can be useful for search.  The ``state`` column contains a JSON
 representation of object state suitable for searching and access from
 other applications.
 
-You can use Postsresql to define more sophisticated or
+You can use PostgreSQL to define more sophisticated or
 application-specific indexes, as needed.
 
 Newt has a built-in helper for defining full-text indexes on your data::
@@ -195,14 +195,14 @@ index.  With the index in place, you can search it like this::
 
 The example above finds all of the objects containing the word
 "explain" in their title, description, or text.  We've assumed that
-these are tasks. If we wanted to make sure, we could add a class
+these are tasks. If we wanted to make sure, we could add a "class"
 restriction::
 
   >>> tasks = connection.where(
   ...   "mytext(state) @@ 'explain' and class = 'newt.demo.Task'")
 
-Rather than creating an index directly, we can ask newt to just return
-the Postgresql code to create them::
+Rather than creating an index directly, we can ask Newt to just return
+the PostgreSQL code to create them::
 
   >>> sql = connection.create_text_index_sql(
   ...           'mytext', ['title', 'description', 'text'])
@@ -246,10 +246,10 @@ database, you could use::
 Learning more
 =============
 
-To learn more about newt, see the newt topics and the newt
+To learn more about Newt, see the Newt topics and the Newt
 :doc:`topics <topics/index>` and :doc:`reference <reference>`.
 
 
 .. [#persistent] Newt makes ``Persistent`` available as an attribute,
    but it's an alias for ``persistent.Persistent``.  In fact many of
-   the classes provided by newt are just aliases.
+   the classes provided by Newt are just aliases.

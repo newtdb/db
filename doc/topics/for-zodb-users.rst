@@ -10,7 +10,7 @@ Newt provides some significant enhancements to ZODB applications:
 - Access to data outside of Python.  Data are stored in a JSON
   representation that can be accessed by non-Python tools.
 
-- Fast powerful search, via Postgres SQL and indexes.
+- Fast, powerful search, via Postgres SQL and indexes.
 
 - Because indexes are maintained in Postgres rather than in the app,
   far fewer objects are stored in the database.
