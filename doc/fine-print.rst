@@ -111,6 +111,15 @@ and learn how to use the Postgres `EXPLAIN
 <https://www.postgresql.org/docs/current/static/using-explain.html>`_
 command.
 
+Postgres is not (really) object oriented
+========================================
+
+Using Newt DB, search and indexing use Postgres.  The data to be
+indexed have to be in the object state. You can't call object methods
+to get data to be indexed.  You can write `database functions
+<https://www.postgresql.org/docs/current/static/xfunc.html>`_ to
+extract data and these functions can branch based on object class.
+
 Transactions
 ============
 
