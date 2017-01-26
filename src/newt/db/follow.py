@@ -1,4 +1,5 @@
 import logging
+import psycopg2
 
 logger = logging.getLogger(__name__)
 
@@ -29,9 +30,14 @@ create trigger newt_trigger_notify_object_state_changed
 
 class Updates:
 
+    _query = """
+    select s.tid, s.zoid, state from object_state s
+    where s.tid > %s and s.tid <= %s order by s.tid
+    """
+
     def __init__(self, conn, start_tid=-1, end_tid=None,
                  batch_limit=100000, internal_batch_size=100,
-                 poll_timeout=300):
+                 poll_timeout=300, keep_history=None):
         self.conn = conn
         self.cursor = conn.cursor()
         self.ex = self.cursor.execute
@@ -43,11 +49,23 @@ class Updates:
         self.internal_batch_size = internal_batch_size
         if end_tid is None:
             self.ex(
-                "select 1 from pg_trigger "
+                "select 1 from pg_catalog.pg_trigger "
                 "where tgname = 'newt_trigger_notify_object_state_changed'")
             if not list(self.cursor):
                 self.ex(trigger_sql)
             self.conn.commit()
+
+        if keep_history is None:
+            self.ex(
+                "select 1 from pg_catalog.pg_class "
+                "where relname = 'current_object'")
+            keep_history = bool(list(self.cursor))
+
+        if keep_history:
+            self._query = self._query.replace(
+                'object_state s',
+                'object_state s natural join current_object',
+                )
 
     def _batch(self):
         tid = self.tid
@@ -56,10 +74,7 @@ class Updates:
             updates = self.conn.cursor('object_state_updates')
             updates.itersize = self.internal_batch_size
             try:
-                updates.execute("""\
-                select tid, zoid, state from object_state
-                where tid > %s and tid <= %s order by tid
-                """, (tid, self.end_tid))
+                updates.execute(self._query, (tid, self.end_tid))
             except Exception:
                 logger.exception("Getting updates after %s", tid)
                 self.ex('rollback')
@@ -80,17 +95,33 @@ class Updates:
             except Exception:
                 pass
 
-    def _listen(self):
+    def listen(self, timeout_on_start=False):
+        """Listen for updates.
+
+        Returns an iterator that returns integer transaction ids or None values.
+
+        The purpose of this method is to determine if there are
+        updates.  If transactions are committed very quickly, then not
+        all of them will be returned by the iterator.
+
+        None values indicate that ``poll_interval`` seconds have
+        passed since the last update.
+        """
         conn = psycopg2.connect(self.conn.dsn)
         try:
             conn.set_isolation_level(
                 psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
             curs = conn.cursor()
             curs.execute("LISTEN newt_object_state_changed")
-            timeout = self.poll_timeout
+            from select import select
+            selargs = [conn], (), (), self.poll_timeout
+
+            if timeout_on_start:
+                # avoid a race between catching up and starting to LISTEN
+                yield None
 
             while True:
-                if select.select([conn], (), (), timeout) == ([], [], []):
+                if select(*selargs) == ([], [], []):
                     yield None
                 else:
                     conn.poll()
@@ -112,7 +143,7 @@ class Updates:
                 yield batch
 
         if self.follow:
-            for payload in self._listen():
+            for payload in self.listen(True):
                 batch = non_empty_generator(self._batch())
                 if batch is not None:
                     yield batch
@@ -133,8 +164,6 @@ def updates(conn, start_tid=-1, end_tid=None,
       >>> for batch in newt.db.follow.updates(connection):
       ...     for tid, zoid, data in batch:
       ...         print(tid, zoid, len(data))
-
-
 
     If no ``end_tid`` is provided, the iterator will iterate until
     interrupted.
