@@ -9,6 +9,13 @@ See http://www.newtdb.org
 Changes
 =======
 
+- Fixed a number of documentation errors.
+
+  (Documentation wasn't tested, but now is, thankd to `manuel
+  <http://pythonhosted.org/manuel/>`_.)
+
+- Added some missing names to ``newt.db``.
+
 0.1.1 (2017-01-24)
 ==================
 
