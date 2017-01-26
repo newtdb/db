@@ -194,7 +194,7 @@ def DB(dsn, **kw):
     objects. When it's ``open`` method is called, it returns
     :py:class:`newt.db.Connection` objects.
     """
-    db_options, storage_options = _split_options()
+    db_options, storage_options = _split_options(**kw)
     return NewtDB(ZODB.DB(storage(dsn, **storage_options), **db_options))
 
 def connection(dsn, **kw):
@@ -206,7 +206,7 @@ def connection(dsn, **kw):
     <http://relstorage.readthedocs.io/en/latest/relstorage-options.html>`_
     options.
     """
-    db_options, storage_options = _split_options()
+    db_options, storage_options = _split_options(**kw)
     return Connection(
         ZODB.connection(storage(dsn, **storage_options), **db_options)
         )
