@@ -51,10 +51,24 @@ changes::
 
   >>> connection.commit()
 
+.. Double check:
+
+   >>> connection.root
+   <root: first>
+
+   >>> connection.root.x = 1
+   >>> connection.root
+   <root: first x>
+
 Or, if we decide we made a mistake, we can abort any changes made
 since the last commit::
 
   >>> connection.abort()
+
+.. Double check:
+
+   >>> connection.root
+   <root: first>
 
 Above, we used the ``newt.db.Object`` class to create new objects.  This
 class creates objects that behave a little bit like JavaScript
