@@ -34,4 +34,38 @@ The interator can run over a range of transactions, or can run
 indefinately, returning new batches as new data are committed.
 
 See the :py:func:`updates reference <newt.db.follow.updates>` for
-detailed documentation.
+detailed documentation.  One of the parameters is ``end_tid``, an end
+transaction id for the iteration. If no ``end_tid`` parameter is
+provided, the iterator will iterate forever, blocking when necessary
+to wait for new data to be committed.
+
+The data returned by the follower is a pickle, which probably isn't
+very useful.  You can convert it to JSON using Newt's JSON conversion.
+We can update the example above::
+
+  >>> import newt.db.follow
+  >>> import newt.db.jsonpickle
+  >>> import psycopg2
+
+  >>> connection = psycopg2.connect('')
+  >>> jsonifier = newt.db.jsonpickle.Jsonifier()
+  >>> for batch in newt.db.follow.updates(connection):
+  ...     for tid, zoid, data in batch:
+  ...         class_name, _, data = jsonifier(oid, data)
+  ...         if data is not None:
+  ...             print(tid, zoid, class_name, data)
+
+:py:class:`Jsonifiers <newt.db.jsonpickle.Jsonifier>` take a label
+(used for logging errors) and data and return a class_name, a ghost
+pickle, and object state as JSON data.  The ghost pickle is generally
+only useful to Newt itself, so we ignore it here.  If the JSON data
+returned is ``None``, we skip processing the data.  The return value may
+be ``None`` if:
+
+- the raw data was an empty string, in which case the database record
+  deleted the object,
+
+- the object class was one the JSON conversion skipped, or
+
+- There was an error converting the data.
+
