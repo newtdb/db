@@ -9,6 +9,9 @@ See http://www.newtdb.org
 Changes
 =======
 
+0.1.2 (2017-01-26)
+==================
+
 - Fixed a number of documentation errors.
 
   (Documentation wasn't tested, but now is, thankd to `manuel
