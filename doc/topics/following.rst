@@ -15,15 +15,28 @@ other applications, such as:
 
 - monitoring or analytics of data changes.
 
+.. setup
+
+  >>> import newt.db
+  >>> c = newt.db.connection(dsn)
+  >>> c.root.x = 1
+  >>> c.commit()
+  >>> c.close()
+
 Usage::
 
   >>> import newt.db.follow
+  >>> import pickle
   >>> import psycopg2
-  >>> connection = psycopg2.connect('')
+  >>> connection = psycopg2.connect(dsn)
   >>> for batch in newt.db.follow.updates(connection):
   ...     for tid, zoid, data in batch:
-  ...         print_(zoid, len(data))
-  0 66
+  ...         print_(zoid, pickle.loads(data).__name__)
+  0 PersistentMapping
+
+.. cleanup
+
+   >>> connection.close()
 
 The reason the updater returns batches to facilitate batch processing
 of data while processing data as soon as possible.  Batches are as
@@ -48,7 +61,7 @@ We can update the example above::
   >>> import newt.db.jsonpickle
   >>> import psycopg2
 
-  >>> connection = psycopg2.connect('')
+  >>> connection = psycopg2.connect(dsn)
   >>> jsonifier = newt.db.jsonpickle.Jsonifier()
   >>> for batch in newt.db.follow.updates(connection):
   ...     for tid, zoid, data in batch:
@@ -71,3 +84,6 @@ be ``None`` if:
 
 - There was an error converting the data.
 
+.. tearDown
+
+   >>> connection.close()
