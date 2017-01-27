@@ -13,8 +13,15 @@ newt.db module-level functions
 
 .. autoclass:: newt.db.Connection
    :members: where, search, where_batch, search_batch, query_data,
-             commit, abort,
              create_text_index_sql, create_text_index
+
+   .. method:: abort()
+
+      Abort the current transaction
+
+   .. method:: commit()
+
+      Commit the current transaction
 
 newt.db.search module-level functions
 =====================================
