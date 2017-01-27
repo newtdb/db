@@ -22,7 +22,8 @@ Usage::
   >>> connection = psycopg2.connect('')
   >>> for batch in newt.db.follow.updates(connection):
   ...     for tid, zoid, data in batch:
-  ...         print(tid, zoid, len(data))
+  ...         print_(zoid, len(data))
+  0 66
 
 The reason the updater returns batches to facilitate batch processing
 of data while processing data as soon as possible.  Batches are as
@@ -51,9 +52,10 @@ We can update the example above::
   >>> jsonifier = newt.db.jsonpickle.Jsonifier()
   >>> for batch in newt.db.follow.updates(connection):
   ...     for tid, zoid, data in batch:
-  ...         class_name, _, data = jsonifier(oid, data)
+  ...         class_name, _, data = jsonifier(zoid, data)
   ...         if data is not None:
-  ...             print(tid, zoid, class_name, data)
+  ...             print_(zoid, class_name, data)
+  0 persistent.mapping.PersistentMapping {"data": {"x": 1}}
 
 :py:class:`Jsonifiers <newt.db.jsonpickle.Jsonifier>` take a label
 (used for logging errors) and data and return a class_name, a ghost
