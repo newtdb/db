@@ -5,6 +5,7 @@ indexing, querying and reporting in external systems like Postgres and
 Elasticsearch.
 """
 import binascii
+from six import BytesIO
 from six.moves import copyreg
 import _codecs
 import datetime
@@ -208,7 +209,7 @@ class JsonUnpickler:
 
     def set_pickle(self, pickle):
         self.pickle = pickle
-        self.ops = pickletools.genops(pickle)
+        self.ops = pickletools.genops(BytesIO(pickle))
 
     def load(self, **json_args):
         for op, arg, pos in self.ops:
