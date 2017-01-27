@@ -3,3 +3,4 @@ bin
 develop-eggs
 dist
 doc/_build
+eggs
