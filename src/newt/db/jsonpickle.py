@@ -132,7 +132,7 @@ class Put(Get):
                 v = {'::': 'shared', 'id': self.id, 'value': v}
         return v
 
-def dt_bytes(v):
+def dt_bytes(v, *args):
     if isinstance(v, Bytes):
         v = v.data
     return v
