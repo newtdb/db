@@ -48,4 +48,5 @@ setup(
     package_data = {name: ['*.txt', '*.test', '*.html']},
     extras_require = extras_require,
     tests_require = extras_require['test'],
+    classifiers = classifiers,
     )
