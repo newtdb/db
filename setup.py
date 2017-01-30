@@ -28,7 +28,7 @@ Topic :: Software Development :: Libraries :: Python Modules
 Operating System :: Microsoft :: Windows
 Operating System :: Unix
 Framework :: ZODB
-""".strip().split()
+""".strip().split('\n')
 
 setup(
     author = 'Jim Fulton',
