@@ -9,7 +9,7 @@ entry_points = """
 
 from setuptools import setup
 
-long_description=open('README.rst').read()
+long_description = open('README.rst').read() + '\n' + open('CHANGES.rst').read()
 
 classifiers = """\
 Intended Audience :: Developers
