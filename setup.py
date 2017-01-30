@@ -35,7 +35,8 @@ setup(
     license = 'MIT',
     url = 'http://www.newtdb.org/',
 
-    name = name, version = version,
+    name = name,
+    version = version,
     long_description = long_description,
     description = long_description.strip().split('\n')[1],
     packages = [name.split('.')[0], name],
