@@ -65,11 +65,12 @@ class Global(object):
 
 class Instance(object):
 
-    id = state = None
+    id = None
 
-    def __init__(self, class_name, args):
+    def __init__(self, class_name, args, state=None):
         self.class_name = class_name
         self.args = args
+        self.state = state
 
     def __setstate__(self, state):
         self.state = state
@@ -137,6 +138,12 @@ def dt_bytes(v):
         v = v.data
     return v
 
+def datetime_(data, tz=None):
+    result = datetime.datetime(dt_bytes(data)).isoformat()
+    if tz is not None:
+        result = Instance("datetime", (), dict(value=result, tz=tz))
+    return result
+
 def reconstruct(args):
     (cls, base, state) = args
     ob = Instance(cls.name, ())
@@ -152,7 +159,7 @@ def handle_set(args):
 
 special_classes = {
     'datetime.datetime':
-    lambda args: datetime.datetime(dt_bytes(*args)).isoformat(),
+    lambda args: datetime_(*args),
     'datetime.date': lambda args: datetime.date(dt_bytes(*args)).isoformat(),
     '_codecs.encode': lambda args: _codecs.encode(*args),
     'copy_reg._reconstructor': reconstruct,
