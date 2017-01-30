@@ -9,6 +9,13 @@ See http://www.newtdb.org
 Changes
 =======
 
+0.2.0dev0 (unreleased)
+=======================
+
+- Added PyPy support
+
+- Fixed: ``datetime`` values with time zones weren't handled correctly.
+
 0.1.2 (2017-01-26)
 ==================
 
