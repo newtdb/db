@@ -112,3 +112,4 @@ Contributors
 ------------
 
 - Jim Fulton, 2017/01/24
+- Jason Madden, 2017/01/25

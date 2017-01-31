@@ -3,7 +3,7 @@
 It's assumed that the API is used with an object stored in a
 RelStorage with a Postgres back end.
 """
-import psycopg2
+
 import re
 from ZODB.utils import p64
 
@@ -172,6 +172,10 @@ def create_text_index(conn, fname, D, C=None, B=None, A=None):
         cursor.execute(sql)
         conn.commit()
     finally:
+        try:
+            cursor.close()
+        except Exception:
+            pass
         try:
             conn.close()
         except Exception:

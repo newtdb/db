@@ -38,6 +38,11 @@ natural as working with objects in memory.  This is done in two ways:
         def add(self, task):
             self._data.add(task)
 
+   .. -> src
+
+      >>> import six, newt
+      >>> six.exec_(src)
+
    In this example, the ``add`` method updates the object by updating
    a subobject.  It doesn't set an attribute, and the change isn't
    detected automatically.  There are a number of ways we can fix
@@ -86,6 +91,15 @@ we ask for SQL statements to index title fields::
   create index newt_title_text_idx on newt using gin (title_text(state));
 
 
+.. -> src
+
+   >>> src = src.strip().split('\n')
+   >>> six.exec_(src[0].replace('>>> ', ''))
+   >>> sql = eval(src[1].replace('>>> print', ''))
+   >>> sql.strip() == '\n'.join(src[2:])
+   True
+
+
 A `PL/pgSQL
 <https://www.postgresql.org/docs/current/static/plpgsql.html>`_
 function is generated that extracts the title from the JSON.  Then an
@@ -110,6 +124,15 @@ When designing queries for your application, you'll want to experiment
 and learn how to use the Postgres `EXPLAIN
 <https://www.postgresql.org/docs/current/static/using-explain.html>`_
 command.
+
+Postgres is not (really) object oriented
+========================================
+
+Using Newt DB, search and indexing use Postgres.  The data to be
+indexed have to be in the object state. You can't call object methods
+to get data to be indexed.  You can write `database functions
+<https://www.postgresql.org/docs/current/static/xfunc.html>`_ to
+extract data and these functions can branch based on object class.
 
 Transactions
 ============

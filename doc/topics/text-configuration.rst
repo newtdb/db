@@ -22,13 +22,25 @@ Here's an example text configuration for Newt DB::
           <postgresql>
             dsn dbname=''
           </postgresql>
-        <newt>
+        </newt>
       </relstorage>
     </zodb>
   </newtdb>
 
+.. -> src
+
+   >>> from ZODB.config import databaseFromString
+   >>> db = databaseFromString(src.replace("''", dsn.rsplit('/')[-1]))
+   >>> import newt.db._db
+   >>> isinstance(db, newt.db._db.NewtDB)
+   True
+   >>> import newt.db._adapter
+   >>> isinstance(db.storage._adapter, newt.db._adapter.Adapter)
+   True
+   >>> db.close()
+
 The syntax used is based on the syntax used by web servers such as
-Apache and NGINX.  Elements in angle brackets identify configuration
+Apache.  Elements, in angle brackets identify configuration
 objects with name-value pairs inside elements to specify options.
 Optional indentation indicates containment relationships and element
 start and end tags must appear on their own lines.

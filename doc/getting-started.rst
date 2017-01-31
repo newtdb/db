@@ -20,7 +20,14 @@ From Python, to get started::
   >>> import newt.db
   >>> connection = newt.db.connection('')
 
-In this example, we've asked Newt to connect to the default Postgres
+.. -> src
+
+   >>> src = [s.replace('>>> ', '') for s in src.strip().split('\n')]
+   >>> import six
+   >>> six.exec_(src[0])
+   >>> six.exec_(src[1].replace("''", "dsn"))
+
+In this example, we've asked newt to connect to the default Postgres
 database.  You can also supply a :doc:`connection string
 <topics/connection-strings>`.
 
@@ -44,10 +51,24 @@ changes::
 
   >>> connection.commit()
 
+.. Double check:
+
+   >>> connection.root
+   <root: first>
+
+   >>> connection.root.x = 1
+   >>> connection.root
+   <root: first x>
+
 Or, if we decide we made a mistake, we can abort any changes made
 since the last commit::
 
   >>> connection.abort()
+
+.. Double check:
+
+   >>> connection.root
+   <root: first>
 
 Above, we used the ``newt.db.Object`` class to create new objects.  This
 class creates objects that behave a little bit like JavaScript
@@ -69,6 +90,12 @@ Normally, you'd create application-specific objects by subclassing
      def assign(self, user):
          self.assigned = user
 
+.. -> src
+
+   >>> import newt.db.tests.testdocs
+   >>> six.exec_(src, newt.db.tests.testdocs.__dict__)
+   >>> Task = newt.db.tests.testdocs.Task
+
 The ``Persistent`` base class helps track object changes. When we
 modify an object, by setting an attribute, the object is marked as
 changed, so that Newt will write it to the database when your
@@ -76,7 +103,7 @@ application commits changes.
 
 With a class like the one above, we can add tasks to the database::
 
-   >>> conn.root.task = Task("First task", "Explain collections")
+   >>> connection.root.task = Task("First task", "Explain collections")
    >>> connection.commit()
 
 Collections
@@ -86,7 +113,7 @@ Having all objects in the root doesn't provide much organization.
 It's better to create container objects.  For example, we can
 create a task list::
 
-  class TaskList(newt.db.Persistent)::
+  class TaskList(newt.db.Persistent):
 
     def __init__(self):
         self.tasks = newt.db.List()
@@ -94,9 +121,14 @@ create a task list::
     def add(self, task):
         self.tasks.append(task)
 
+.. -> src
+
+   >>> six.exec_(src, newt.db.tests.testdocs.__dict__)
+   >>> TaskList = newt.db.tests.testdocs.TaskList
+
 Then when setting up our database, we'd do something like::
 
-  >>> connection.root.tasks = TasksList()
+  >>> connection.root.tasks = TaskList()
   >>> connection.commit()
 
 In the ``TaskList`` class, we using a ``List`` object. This is similar to
@@ -106,7 +138,7 @@ tracks changes so they're saved when your application commits changes.
 Rather than supporting a single task list, we could create a list
 container, perhaps organized by list name::
 
-  class TaskLists(newt.db.persistent):
+  class TaskLists(newt.db.Persistent):
 
       def __init__(self):
           self.lists = newt.db.BTree()
@@ -116,8 +148,13 @@ container, perhaps organized by list name::
               raise KeyError("There's already a list named", name)
           self.lists[name] = list
 
-      def __getitem__(name):
+      def __getitem__(self, name):
           return self.lists[name]
+
+.. -> src
+
+   >>> six.exec_(src, newt.db.tests.testdocs.__dict__)
+   >>> TaskLists = newt.db.tests.testdocs.TaskLists
 
 Here, we used a ``BTree`` as the basis of our container.  BTrees are
 mapping objects that keep data sorted on their keys.
@@ -199,7 +236,7 @@ these are tasks. If we wanted to make sure, we could add a "class"
 restriction::
 
   >>> tasks = connection.where(
-  ...   "mytext(state) @@ 'explain' and class = 'newt.demo.Task'")
+  ...   "mytext(state) @@ 'explain' and class_name = 'newt.demo.Task'")
 
 Rather than creating an index directly, we can ask Newt to just return
 the PostgreSQL code to create them::
@@ -242,6 +279,10 @@ database, you could use::
   ...     group by class_name
   ...     order by class_name
   ...     """)
+
+.. cleanup
+
+   >>> connection.close()
 
 Learning more
 =============
