@@ -26,7 +26,7 @@ natural as working with objects in memory.  This is done in two ways:
    states are discarded and will be reloaded with current state when
    they're accessed next.
 
-2. Object accesses and changes are detected my observing attribute
+2. Object accesses and changes are detected by observing attribute
    access.  This works very well for accesses, but can miss updates. For
    example, consider this class::
 
@@ -58,7 +58,7 @@ see:
 
   http://www.zodb.org/en/latest/guide/writing-persistent-objects.html
 
-Learn about indexing and querying Postgresql
+Learn about indexing and querying PostgreSQL
 ============================================
 
 By default, Newt creates a JSON index on your data.  Read about
@@ -162,7 +162,7 @@ transaction-execution forms that can be used.  See:
 
   http://www.zodb.org/en/latest/guide/transactions-and-threading.html
 
-For more information.
+for more information.
 
 .. [#maybe-match] In a more complex query, Postgres might evaluate the
    expression. It depends on what other indexes might be in play.

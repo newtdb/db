@@ -8,7 +8,7 @@ Newt DB, the amphibious database
   Data are moved in and out of memory as needed, so databases can be
   as large as needed.
 
-- In Postgres: index and search your data using Postgresql, from within your
+- In Postgres: index and search your data using PostgreSQL, from within your
   application and externally.
 
 - Within your application, search results may be returned as
