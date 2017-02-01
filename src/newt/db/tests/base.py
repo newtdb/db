@@ -1,7 +1,8 @@
-from relstorage.adapters.postgresql import adapter
 import gc
 import sys
 PYPY = hasattr(sys, 'pypy_version_info')
+
+from .. import pg_connection
 
 class DBSetup(object):
 
@@ -13,7 +14,7 @@ class DBSetup(object):
 
     def setUp(self, call_super=True):
         self.dbname = self.__class__.__name__.lower() + '_newt_test_database'
-        self.base_conn = adapter.select_driver().connect('')
+        self.base_conn = pg_connection('')
         self.base_conn.autocommit = True
         self.base_cursor = self.base_conn.cursor()
         self.drop_db()

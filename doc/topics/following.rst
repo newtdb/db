@@ -25,10 +25,10 @@ other applications, such as:
 
 Usage::
 
+  >>> import newt.db
   >>> import newt.db.follow
   >>> import pickle
-  >>> import psycopg2
-  >>> connection = psycopg2.connect(dsn)
+  >>> connection = newt.db.pg_connection(dsn)
   >>> for batch in newt.db.follow.updates(connection):
   ...     for tid, zoid, data in batch:
   ...         print_(zoid, pickle.loads(data).__name__)
@@ -57,17 +57,17 @@ The data returned by the follower is a pickle, which probably isn't
 very useful.  You can convert it to JSON using Newt's JSON conversion.
 We can update the example above::
 
+  >>> import newt.db
   >>> import newt.db.follow
   >>> import newt.db.jsonpickle
-  >>> import psycopg2
 
-  >>> connection = psycopg2.connect(dsn)
-  >>> jsonifier = newt.db.jsonpickle.Jsonifier()
-  >>> for batch in newt.db.follow.updates(connection):
-  ...     for tid, zoid, data in batch:
-  ...         class_name, _, data = jsonifier(zoid, data)
-  ...         if data is not None:
-  ...             print_(zoid, class_name, data)
+  | >>> connection = newt.db.pg_connection(dsn)
+  | >>> jsonifier = newt.db.jsonpickle.Jsonifier()
+  | >>> for batch in newt.db.follow.updates(connection):
+  | ...     for tid, zoid, data in batch:
+  | ...         class_name, _, data = jsonifier(zoid, data)
+  | ...         if data is not None:
+  | ...             print_(zoid, class_name, data)
   0 persistent.mapping.PersistentMapping {"data": {"x": 1}}
 
 :py:class:`Jsonifiers <newt.db.jsonpickle.Jsonifier>` take a label

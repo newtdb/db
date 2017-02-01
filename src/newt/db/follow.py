@@ -1,5 +1,6 @@
 import logging
-import psycopg2
+
+from . import pg_connection
 
 logger = logging.getLogger(__name__)
 
@@ -107,10 +108,9 @@ class Updates:
         None values indicate that ``poll_interval`` seconds have
         passed since the last update.
         """
-        conn = psycopg2.connect(self.conn.dsn)
+        conn = pg_connection(self.conn.dsn)
         try:
-            conn.set_isolation_level(
-                psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+            conn.autocommit = True
             curs = conn.cursor()
             curs.execute("LISTEN newt_object_state_changed")
             from select import select
@@ -158,9 +158,9 @@ def updates(conn, start_tid=-1, end_tid=None,
     integer transaction id, integer object id and data.  A sample
     use::
 
+      >>> import newt.db
       >>> import newt.db.follow
-      >>> import psycopg2
-      >>> connection = psycopg2.connect('')
+      >>> connection = newt.db.pg_connection('')
       >>> for batch in newt.db.follow.updates(connection):
       ...     for tid, zoid, data in batch:
       ...         print(tid, zoid, len(data))
@@ -171,7 +171,7 @@ def updates(conn, start_tid=-1, end_tid=None,
     Parameters:
 
     conn
-      A psycopg2 database connection.
+      A Postgres database connection.
 
     start_tid
       Start tid, expressed as an integer.  The iterator starts at the

@@ -1,6 +1,6 @@
-import psycopg2
 import unittest
 
+from .. import pg_connection
 from . import base
 
 class FollowTests(base.DBSetup, unittest.TestCase):
@@ -9,7 +9,7 @@ class FollowTests(base.DBSetup, unittest.TestCase):
 
     def setUp(self):
         super(FollowTests, self).setUp()
-        self.conn = psycopg2.connect(self.dsn)
+        self.conn = pg_connection(self.dsn)
         self.conn.autocommit = True
         self.cursor = self.conn.cursor()
         self.mogrify = self.cursor.mogrify
@@ -24,6 +24,7 @@ class FollowTests(base.DBSetup, unittest.TestCase):
                     " (zoid bigint primary key, tid bigint, state bytea)")
 
     def tearDown(self):
+        self.cursor.close()
         self.conn.close()
         super(FollowTests, self).tearDown()
 
@@ -60,7 +61,7 @@ class FollowTests(base.DBSetup, unittest.TestCase):
             t += 1
             self.store(t, *range(i, i+7))
         from ..follow import updates
-        conn = psycopg2.connect(self.conn.dsn)
+        conn = pg_connection(self.conn.dsn)
         self.assertEqual(
             [[int(r[1]) for r in b]
              for b in updates(conn, end_tid=999, batch_limit=20)
@@ -79,10 +80,13 @@ class FollowTests(base.DBSetup, unittest.TestCase):
             [list(range(14, 28))],
             )
 
+        conn.close()
+
     def test_update_iterator_follow(self, poll_timeout=99):
-        conn = psycopg2.connect(self.conn.dsn)
+        conn = pg_connection(self.conn.dsn)
         self.store(1, 1, 2)
         self.store(2, 1, 2)
+
         from ..follow import updates
 
         import threading
@@ -116,6 +120,8 @@ class FollowTests(base.DBSetup, unittest.TestCase):
         finally:
             self.ex("notify newt_object_state_changed, 'STOP'")
             thread.join(9)
+
+        conn.close()
 
     def test_update_iterator_follow_no_timeout(self):
         self.test_update_iterator_follow(None)

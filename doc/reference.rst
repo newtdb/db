@@ -13,6 +13,8 @@ newt.db module-level functions
 
 .. autofunction:: newt.db.storage
 
+.. autofunction:: newt.db.pg_connection
+
 .. autoclass:: newt.db.Connection
    :members: where, search, where_batch, search_batch, query_data,
              create_text_index_sql, create_text_index
