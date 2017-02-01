@@ -12,6 +12,8 @@ Documentation:
 
 - topic on deletion
 
+- topic on transaction management
+
 - topic expanding the tasks example to make it more realistic
 
 Medium priorities:
