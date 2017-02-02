@@ -1,8 +1,11 @@
 import gc
 import sys
+import unittest
+
 PYPY = hasattr(sys, 'pypy_version_info')
 
 from .. import pg_connection
+from .._util import closing
 
 class DBSetup(object):
 
@@ -24,6 +27,11 @@ class DBSetup(object):
             super(DBSetup, self).setUp()
 
     def drop_db(self):
+        self.base_cursor.execute(
+            """
+            select pg_terminate_backend(pid) from pg_stat_activity
+            where datname = %s
+            """, (self.dbname,))
         self.base_cursor.execute('drop database if exists ' + self.dbname)
 
     def tearDown(self):
@@ -40,3 +48,6 @@ class DBSetup(object):
         self.drop_db()
         self.base_cursor.close()
         self.base_conn.close()
+
+class TestCase(DBSetup, unittest.TestCase):
+    pass
