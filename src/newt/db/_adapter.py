@@ -129,16 +129,6 @@ def create_newt(cursor, keep_history):
 class SchemaInstaller(
     relstorage.adapters.postgresql.schema.PostgreSQLSchemaInstaller):
 
-    def _create_newt(self, cursor):
-        cursor.execute("""
-        create table newt (
-          zoid bigint primary key,
-          class_name text,
-          ghost_pickle bytea,
-          state jsonb);
-        create index newt_json_idx on newt using gin (state);
-        """)
-
     def create(self, cursor):
         super(SchemaInstaller, self).create(cursor)
         create_newt(cursor, self.keep_history)
