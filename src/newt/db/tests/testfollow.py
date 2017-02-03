@@ -12,7 +12,6 @@ class FollowTests(base.DBSetup, unittest.TestCase):
         self.conn = pg_connection(self.dsn)
         self.conn.autocommit = True
         self.cursor = self.conn.cursor()
-        self.mogrify = self.cursor.mogrify
         self.ex = self.cursor.execute
         if self.history_preserving:
             self.ex("create table if not exists object_state"
@@ -27,6 +26,9 @@ class FollowTests(base.DBSetup, unittest.TestCase):
         self.cursor.close()
         self.conn.close()
         super(FollowTests, self).tearDown()
+
+    def mogrify(self, *args):
+        return self.cursor.mogrify(*args).decode('ascii')
 
     def store(self, tid, *oids):
         svalues = ", ".join(self.mogrify("(%s, %s, 'some data')", (oid, tid))

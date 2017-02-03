@@ -388,7 +388,7 @@ class JsonUnpicklerDBTests(unittest.TestCase):
         self.assertEqual('persistent.mapping.PersistentMapping', class_name)
         self.assertEqual('{"data": {}}', state)
         self.assertTrue(p.startswith(ghost_pickle) and
-                        ghost_pickle[-1] == '.' and
+                        ghost_pickle[-1:] == b'.' and
                         b'persistent.mapping' in ghost_pickle)
 
         # custon skip_class
@@ -409,7 +409,7 @@ class JsonUnpicklerDBTests(unittest.TestCase):
         self.assertEqual(handler.records, [])
         self.assertEqual((None, None, None), jsonifier('foo', b'badness'))
         self.assertEqual(
-            [r.getMessage() for r in handler.records],
+            [r.getMessage().replace("b'", "'") for r in handler.records],
             ["Failed pickle load, oid: 'foo', pickle starts: 'badness'"])
 
         handler.uninstall()

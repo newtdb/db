@@ -1,8 +1,11 @@
 import logging
 
 from . import pg_connection
+from ._util import closing, table_exists
 
 logger = logging.getLogger(__name__)
+
+NOTIFY = 'newt_object_state_changed'
 
 def non_empty_generator(gen):
     try:
@@ -19,7 +22,7 @@ trigger_sql = """
 create function newt_notify_object_state_changed() returns trigger
 as $$
 begin
-  perform pg_notify('newt_object_state_changed', NEW.tid::text);
+  perform pg_notify('%s', NEW.tid::text);
   return NEW;
 end;
 $$ language plpgsql;
@@ -27,7 +30,7 @@ $$ language plpgsql;
 create trigger newt_trigger_notify_object_state_changed
   after insert or update on object_state for each row
   execute procedure newt_notify_object_state_changed();
-"""
+""" % NOTIFY
 
 class Updates:
 
@@ -36,7 +39,7 @@ class Updates:
     where s.tid > %s and s.tid <= %s order by s.tid
     """
 
-    def __init__(self, conn, start_tid=-1, end_tid=None,
+    def __init__(self, conn, start_tid =-1, end_tid=None,
                  batch_limit=100000, internal_batch_size=100,
                  poll_timeout=300, keep_history=None):
         self.conn = conn
@@ -108,30 +111,27 @@ class Updates:
         None values indicate that ``poll_interval`` seconds have
         passed since the last update.
         """
-        conn = pg_connection(self.conn.dsn)
-        try:
+        with closing(pg_connection(self.conn.dsn)) as conn:
             conn.autocommit = True
-            curs = conn.cursor()
-            curs.execute("LISTEN newt_object_state_changed")
-            from select import select
-            selargs = [conn], (), (), self.poll_timeout
+            with closing(conn.cursor()) as curs:
+                curs.execute("LISTEN " + NOTIFY)
+                from select import select
+                selargs = [conn], (), (), self.poll_timeout
 
-            if timeout_on_start:
-                # avoid a race between catching up and starting to LISTEN
-                yield None
-
-            while True:
-                if select(*selargs) == ([], [], []):
+                if timeout_on_start:
+                    # avoid a race between catching up and starting to LISTEN
                     yield None
-                else:
-                    conn.poll()
-                    if conn.notifies:
-                        if any(n.payload == 'STOP' for n in conn.notifies):
-                            return # for tests
-                        # yield the last
-                        yield conn.notifies[-1].payload
-        finally:
-            conn.close()
+
+                while True:
+                    if select(*selargs) == ([], [], []):
+                        yield None
+                    else:
+                        conn.poll()
+                        if conn.notifies:
+                            if any(n.payload == 'STOP' for n in conn.notifies):
+                                return # for tests
+                            # yield the last
+                            yield conn.notifies[-1].payload
 
     def __iter__(self):
         # Catch up:
@@ -202,3 +202,68 @@ def updates(conn, start_tid=-1, end_tid=None,
 
     return Updates(conn, start_tid, end_tid, batch_limit, internal_batch_size,
                    poll_timeout)
+
+def get_progress_tid(conn, id):
+    """Get the current progress for a follow client.
+
+    Return the last saved integer transaction id for the client, or
+    -1, if one hasn't been saved before.
+
+    A follow client often updates some other data based on the data
+    returned from ``updates``.  It may stop and restart later. To do
+    this, it will call ``set_progress_tid`` to save its progress and
+    later call ``get_progress_tid`` to find where it left off.  It can
+    then pass the returned tid as ``start_tid`` to ``updates``.
+
+    The ``id`` parameters is used to identify which progress is
+    wanted.  This should uniquely identify the client and generally a
+    dotted name (``__name__``) of the client module is used.  This
+    allows multiple clients to have their progress tracked.
+    """
+    with closing(conn.cursor()) as cursor:
+        ex = cursor.execute
+        try:
+            ex("select tid from newt_follow_progress where id = %s", (id,))
+        except Exception:
+            # Hm, maybe the table doesn't exist:
+            conn.rollback()
+            if not table_exists(conn, 'newt_follow_progress'):
+                ex("create table newt_follow_progress"
+                   " (id text primary key, tid bigint)")
+
+            # Try again. Note that if we didn't create the table, this
+            # will hopefullt fail again, forcing the caller to rollback.
+            ex("select tid from newt_follow_progress where id = %s", (id,))
+
+        tid = list(cursor)
+        if tid:
+            return tid[0][0]
+        else:
+            return -1
+
+def set_progress_tid(conn, id, tid):
+    """Set the current progress for a follow client.
+
+    See ``get_progress_tid``.
+
+    The ``id`` argument is a string identifying a client. It should
+    generally be a dotted name (usually ``__name__``) of the client
+    module.  It must uniquely identify the client.
+
+    The ``tid`` argument is the most recently processed transaction id
+    as an int.
+    """
+    with closing(conn.cursor()) as cursor:
+        cursor.execute("delete from newt_follow_progress where id=%s", (id, ))
+        cursor.execute(
+            "insert into newt_follow_progress(id, tid) values(%s, %s)",
+            (id, tid))
+
+def stop_updates(conn):
+    """Notify all ``updates`` iterators that they should stop.
+
+    This is mainly intended for tests. It only works for iterators
+    that are already waiting for for new data.
+    """
+    with closing(conn.cursor()) as cursor:
+        cursor.execute("notify %s, 'STOP'" % NOTIFY)

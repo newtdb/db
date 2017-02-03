@@ -38,7 +38,7 @@ newt.db.follow module-level functions
 =====================================
 
 .. automodule:: newt.db.follow
-   :members: updates
+   :members: updates, get_progress_tid, set_progress_tid
 
 newt.db.jsonpickle module-level functions
 =========================================
