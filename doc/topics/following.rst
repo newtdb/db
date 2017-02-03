@@ -26,18 +26,12 @@ other applications, such as:
 You can get an iterator of changes by calling the
 :py:func:`~newt.db.follow.updates` function::
 
-  >>> import newt.db
   >>> import newt.db.follow
   >>> import pickle
-  >>> connection = newt.db.pg_connection(dsn)
-  >>> for batch in newt.db.follow.updates(connection):
+  >>> for batch in newt.db.follow.updates(dsn):
   ...     for tid, zoid, data in batch:
   ...         print_(zoid, pickle.loads(data).__name__)
   0 PersistentMapping
-
-.. cleanup
-
-   >>> connection.close()
 
 The updates iterator returns batches to facilitate batch processing of
 data while processing data as soon as possible.  Batches are as large
@@ -58,13 +52,11 @@ The data returned by the follower is a pickle, which probably isn't
 very useful.  You can convert it to JSON using Newt's JSON conversion.
 We can update the example above::
 
-  >>> import newt.db
   >>> import newt.db.follow
   >>> import newt.db.jsonpickle
 
-  >>> connection = newt.db.pg_connection(dsn)
   >>> jsonifier = newt.db.jsonpickle.Jsonifier()
-  >>> for batch in newt.db.follow.updates(connection):
+  >>> for batch in newt.db.follow.updates(dsn):
   ...     for tid, zoid, data in batch:
   ...         class_name, _, data = jsonifier((zoid, tid), data)
   ...         if data is not None:
@@ -88,18 +80,13 @@ be ``None`` if:
 Tracking progress
 =================
 
-.. setup
-
-  >>> newt.db.follow.get_progress_tid(connection, 'mypackage.mymodule')
-  -1
-
 Often the data returned by the ``updates`` iterator is used to update
 some other data.  Often clients will be stopped and later restarted
 and need to keep track of where they left off.  The
 :py:func:`~newt.db.follow.set_progress_tid` method can be used to save
 progress for a client::
 
-  >>> newt.db.follow.set_progress_tid(connection, 'mypackage.mymodule', tid)
+  >>> newt.db.follow.set_progress_tid(dsn, 'mypackage.mymodule', tid)
 
 The first argument is a PostgreSQL database connection.  The second
 argument is a client identifier, typically the dotted name of the
@@ -109,8 +96,7 @@ processed.
 Later, you can use :py:func:`~newt.db.follow.get_progress_tid` to retrieve
 the saved transaction id::
 
-  >>> start_tid = newt.db.follow.get_progress_tid(
-  ...   connection, 'mypackage.mymodule')
+  >>> start_tid = newt.db.follow.get_progress_tid(dsn, 'mypackage.mymodule')
 
 .. check
 
@@ -119,7 +105,3 @@ the saved transaction id::
 
 You'd then pass the retrieved transaction identifier as the
 ``start_tid`` argument to :py:func:`~newt.db.follow.updates`.
-
-.. tearDown
-
-   >>> connection.close()

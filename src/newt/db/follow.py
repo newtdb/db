@@ -223,7 +223,21 @@ def updates(conn, start_tid=-1, end_tid=None,
     return Updates(conn, start_tid, end_tid, batch_limit, internal_batch_size,
                    poll_timeout)
 
-def get_progress_tid(conn, id):
+def _ex_progress(conn, cursor, sql, *args):
+    try:
+        cursor.execute(sql, args)
+    except Exception:
+        # Hm, maybe the table doesn't exist:
+        conn.rollback()
+        if not table_exists(conn, 'newt_follow_progress'):
+            cursor.execute("create table newt_follow_progress"
+                           " (id text primary key, tid bigint)")
+
+        # Try again. Note that if we didn't create the table, this
+        # will hopefullt fail again, forcing the caller to rollback.
+        cursor.execute(sql, args)
+
+def get_progress_tid(connection, id):
     """Get the current progress for a follow client.
 
     Return the last saved integer transaction id for the client, or
@@ -235,25 +249,22 @@ def get_progress_tid(conn, id):
     later call ``get_progress_tid`` to find where it left off.  It can
     then pass the returned tid as ``start_tid`` to ``updates``.
 
+    The ``connection`` argument must be a PostgreSQL connection string
+    or connection.
+
     The ``id`` parameters is used to identify which progress is
     wanted.  This should uniquely identify the client and generally a
     dotted name (``__name__``) of the client module is used.  This
     allows multiple clients to have their progress tracked.
     """
-    with closing(conn.cursor()) as cursor:
-        ex = cursor.execute
-        try:
-            ex("select tid from newt_follow_progress where id = %s", (id,))
-        except Exception:
-            # Hm, maybe the table doesn't exist:
-            conn.rollback()
-            if not table_exists(conn, 'newt_follow_progress'):
-                ex("create table newt_follow_progress"
-                   " (id text primary key, tid bigint)")
+    if isinstance(connection, str):
+        with closing(pg_connection(connection)) as conn:
+            return get_progress_tid(conn, id)
 
-            # Try again. Note that if we didn't create the table, this
-            # will hopefullt fail again, forcing the caller to rollback.
-            ex("select tid from newt_follow_progress where id = %s", (id,))
+    with closing(connection.cursor()) as cursor:
+        _ex_progress(
+            connection, cursor,
+            "select tid from newt_follow_progress where id = %s", id)
 
         tid = list(cursor)
         if tid:
@@ -261,10 +272,13 @@ def get_progress_tid(conn, id):
         else:
             return -1
 
-def set_progress_tid(conn, id, tid):
+def set_progress_tid(connection, id, tid):
     """Set the current progress for a follow client.
 
     See ``get_progress_tid``.
+
+    The ``connection`` argument must be a PostgreSQL connection string
+    or connection.
 
     The ``id`` argument is a string identifying a client. It should
     generally be a dotted name (usually ``__name__``) of the client
@@ -273,8 +287,15 @@ def set_progress_tid(conn, id, tid):
     The ``tid`` argument is the most recently processed transaction id
     as an int.
     """
-    with closing(conn.cursor()) as cursor:
-        cursor.execute("delete from newt_follow_progress where id=%s", (id, ))
+    if isinstance(connection, str):
+        with closing(pg_connection(connection)) as conn:
+            set_progress_tid(conn, id, tid)
+            conn.commit()
+            return
+
+    with closing(connection.cursor()) as cursor:
+        _ex_progress(connection, cursor,
+                     "delete from newt_follow_progress where id=%s", id)
         cursor.execute(
             "insert into newt_follow_progress(id, tid) values(%s, %s)",
             (id, tid))
