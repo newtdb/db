@@ -63,10 +63,9 @@ class FollowTests(base.DBSetup, unittest.TestCase):
             t += 1
             self.store(t, *range(i, i+7))
         from ..follow import updates
-        conn = pg_connection(self.conn.dsn)
         self.assertEqual(
             [[int(r[1]) for r in b]
-             for b in updates(conn, end_tid=999, batch_limit=20)
+             for b in updates(self.conn.dsn, end_tid=999, batch_limit=20)
              ],
             [list(range(0, 21)),
              list(range(21, 42)),
@@ -77,15 +76,12 @@ class FollowTests(base.DBSetup, unittest.TestCase):
 
         self.assertEqual(
             [[int(r[1]) for r in b]
-             for b in updates(conn, start_tid=22, end_tid=24)
+             for b in updates(self.conn.dsn, start_tid=22, end_tid=24)
              ],
             [list(range(14, 28))],
             )
 
-        conn.close()
-
     def test_update_iterator_follow(self, poll_timeout=99):
-        conn = pg_connection(self.conn.dsn)
         self.store(1, 1, 2)
         self.store(2, 1, 2)
 
@@ -95,7 +91,7 @@ class FollowTests(base.DBSetup, unittest.TestCase):
 
         data = []
         def collect():
-            for batch in updates(conn, poll_timeout=poll_timeout):
+            for batch in updates(self.conn.dsn, poll_timeout=poll_timeout):
                 data.append([(int(r[0]), int(r[1])) for r in batch])
 
         thread = threading.Thread(target=collect)
@@ -122,8 +118,6 @@ class FollowTests(base.DBSetup, unittest.TestCase):
         finally:
             self.ex("notify newt_object_state_changed, 'STOP'")
             thread.join(9)
-
-        conn.close()
 
     def test_update_iterator_follow_no_timeout(self):
         self.test_update_iterator_follow(None)

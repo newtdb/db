@@ -36,53 +36,26 @@ class Updates:
 
     _query = """
     select s.tid, s.zoid, state from object_state s
-    where s.tid > %s and s.tid <= %s order by s.tid
+    where s.tid > %s UPPER order by s.tid
     """
 
-    def __init__(self, conn, start_tid =-1, end_tid=None,
+    def __init__(self, dsn, start_tid =-1, end_tid=None,
                  batch_limit=100000, internal_batch_size=100,
                  poll_timeout=300, keep_history=None):
-        self.conn = conn
-        self.cursor = conn.cursor()
-        self.ex = self.cursor.execute
+        self.dsn = dsn
         self.tid = start_tid
-        self.follow = end_tid is None
-        self.end_tid = end_tid or 1<<62
-        self.poll_timeout = poll_timeout
+        self.end_tid = end_tid
         self.batch_limit = batch_limit
         self.internal_batch_size = internal_batch_size
-        if end_tid is None:
-            self.ex(
-                "select 1 from pg_catalog.pg_trigger "
-                "where tgname = 'newt_trigger_notify_object_state_changed'")
-            if not list(self.cursor):
-                self.ex(trigger_sql)
-            self.conn.commit()
+        self.poll_timeout = poll_timeout
+        self.keep_history = keep_history
 
-        if keep_history is None:
-            self.ex(
-                "select 1 from pg_catalog.pg_class "
-                "where relname = 'current_object'")
-            keep_history = bool(list(self.cursor))
-
-        if keep_history:
-            self._query = self._query.replace(
-                'object_state s',
-                'object_state s natural join current_object',
-                )
-
-    def _batch(self):
+    def _batch(self, conn):
         tid = self.tid
-        self.ex('begin')
         try:
-            updates = self.conn.cursor('object_state_updates')
+            updates = conn.cursor('object_state_updates')
             updates.itersize = self.internal_batch_size
-            try:
-                updates.execute(self._query, (tid, self.end_tid))
-            except Exception:
-                logger.exception("Getting updates after %s", tid)
-                self.ex('rollback')
-                raise
+            updates.execute(self._query, (tid, ))
 
             n = 0
             for row in updates:
@@ -94,59 +67,106 @@ class Updates:
                 n += 1
         finally:
             try:
-                self.conn.rollback()
+                conn.rollback()
                 updates.close()
             except Exception:
                 pass
 
-    def listen(self, timeout_on_start=False):
-        """Listen for updates.
-
-        Returns an iterator that returns integer transaction ids or None values.
-
-        The purpose of this method is to determine if there are
-        updates.  If transactions are committed very quickly, then not
-        all of them will be returned by the iterator.
-
-        None values indicate that ``poll_interval`` seconds have
-        passed since the last update.
-        """
-        with closing(pg_connection(self.conn.dsn)) as conn:
-            conn.autocommit = True
-            with closing(conn.cursor()) as curs:
-                curs.execute("LISTEN " + NOTIFY)
-                from select import select
-                selargs = [conn], (), (), self.poll_timeout
-
-                if timeout_on_start:
-                    # avoid a race between catching up and starting to LISTEN
-                    yield None
-
-                while True:
-                    if select(*selargs) == ([], [], []):
-                        yield None
-                    else:
-                        conn.poll()
-                        if conn.notifies:
-                            if any(n.payload == 'STOP' for n in conn.notifies):
-                                return # for tests
-                            # yield the last
-                            yield conn.notifies[-1].payload
-
     def __iter__(self):
-        # Catch up:
-        while True:
-            batch = non_empty_generator(self._batch())
-            if batch is None:
-                break # caught up
-            else:
-                yield batch
+        with closing(pg_connection(self.dsn)) as conn:
+            with closing(conn.cursor()) as cursor:
+                keep_history = self.keep_history
+                if keep_history is None:
+                    cursor.execute(
+                        "select 1 from pg_catalog.pg_class "
+                        "where relname = 'current_object'")
+                    keep_history = bool(list(cursor))
 
-        if self.follow:
-            for payload in self.listen(True):
-                batch = non_empty_generator(self._batch())
-                if batch is not None:
-                    yield batch
+                if keep_history:
+                    self._query = self._query.replace(
+                        'object_state s',
+                        'object_state s natural join current_object',
+                        )
+
+                self._query = self._query.replace(
+                    'UPPER',
+                    '' if self.end_tid is None else
+                    cursor.mogrify("and s.tid <= %s",
+                                   (self.end_tid, )).decode('ascii'),
+                    )
+
+                # Catch up:
+                while True:
+                    batch = non_empty_generator(self._batch(conn))
+                    if batch is None:
+                        break # caught up
+                    else:
+                        yield batch
+
+                if self.end_tid is None:
+                    for payload in listen(self.dsn, True,
+                                          poll_timeout=self.poll_timeout):
+                        batch = non_empty_generator(self._batch(conn))
+                        if batch is not None:
+                            yield batch
+
+def listen(dsn, timeout_on_start=False, poll_timeout=300):
+    """Listen for newt database updates.
+
+    Returns an iterator that returns integer transaction ids or None values.
+
+    The purpose of this method is to determine if there are
+    updates.  If transactions are committed very quickly, then not
+    all of them will be returned by the iterator.
+
+    None values indicate that ``poll_interval`` seconds have
+    passed since the last update.
+
+    Parameters:
+
+    dsn
+      A Postgres connection string
+
+    timeout_on_start
+      Force None to be returned immediately after listening for
+      notifications.
+
+      This is useful in some special cases to avoid having to time out
+      waiting for changes that happened before the iterator began
+      listening.
+
+    poll_timeout
+      A timeout after which None is returned if there are no changes.
+      (This is a backstop to PostgreSQL's notification system.)
+    """
+    with closing(pg_connection(dsn)) as conn:
+        conn.autocommit = True
+        with closing(conn.cursor()) as cursor:
+            cursor.execute(
+                "select 1 from pg_catalog.pg_trigger "
+                "where tgname = 'newt_trigger_notify_object_state_changed'")
+            if not list(cursor):
+                cursor.execute(trigger_sql)
+
+            cursor.execute("LISTEN " + NOTIFY)
+
+            from select import select
+            selargs = [conn], (), (), poll_timeout
+
+            if timeout_on_start:
+                # avoid a race between catching up and starting to LISTEN
+                yield None
+
+            while True:
+                if select(*selargs) == ([], [], []):
+                    yield None
+                else:
+                    conn.poll()
+                    if conn.notifies:
+                        if any(n.payload == 'STOP' for n in conn.notifies):
+                            return # for tests
+                        # yield the last
+                        yield conn.notifies[-1].payload
 
 def updates(conn, start_tid=-1, end_tid=None,
             batch_limit=100000, internal_batch_size=100,
