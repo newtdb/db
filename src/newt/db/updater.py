@@ -52,7 +52,7 @@ do update set class_name   = excluded.class_name,
               state        = excluded.state
 """
 
-def update_newt(conn, cursor, jsonifier, Binary, batch):
+def _update_newt(conn, cursor, jsonifier, Binary, batch):
     ex = cursor.execute
     mogrify = cursor.mogrify
 
@@ -98,11 +98,9 @@ def main(args=None):
     driver = relstorage.adapters.postgresql.select_driver(
         relstorage.options.Options(driver=options.driver))
     Binary = driver.Binary
-    conn, cursor = driver.connect_with_isolation(
-        driver.ISOLATION_LEVEL_SERIALIZABLE,
-        options.connection_string)
-    with closing(conn):
-        with closing(cursor):
+    dsn = options.connection_string
+    with closing(pg_connection(dsn)) as conn:
+        with closing(conn.cursor()) as cursor:
             tid = follow.get_progress_tid(conn, __name__)
             if tid < 0 and not table_exists(conn, 'newt'):
                 from ._adapter import newt_ddl
@@ -118,13 +116,13 @@ def main(args=None):
                 end_tid = None
 
             for batch in follow.updates(
-                conn,
+                dsn,
                 start_tid=start_tid,
                 end_tid=end_tid,
                 batch_limit=options.transaction_size_limit,
                 poll_timeout=options.poll_timeout,
                 ):
-                update_newt(conn, cursor, jsonifier, Binary, batch)
+                _update_newt(conn, cursor, jsonifier, Binary, batch)
 
 if __name__ == '__main__':
     main()
