@@ -21,6 +21,7 @@ from .base import DBSetup
 class AdapterTests(DBSetup, unittest.TestCase):
 
     layer = MininalTestLayer('AdapterTests')
+    keep_history = False
 
     def __assertBasicData(self, conn, o):
         # We should see the json data:
@@ -45,7 +46,7 @@ class AdapterTests(DBSetup, unittest.TestCase):
 
     def test_basic(self):
         import newt.db
-        conn = newt.db.connection(self.dsn)
+        conn = newt.db.connection(self.dsn, keep_history=self.keep_history)
 
         # Add an object:
         conn.root.x = o = Object(a=1)
@@ -63,7 +64,7 @@ class AdapterTests(DBSetup, unittest.TestCase):
 
         import newt.db
 
-        storage = newt.db.storage(self.dsn)
+        storage = newt.db.storage(self.dsn, keep_history=self.keep_history)
         storage.copyTransactionsFrom(source_db.storage)
         storage.close()
 
@@ -72,6 +73,61 @@ class AdapterTests(DBSetup, unittest.TestCase):
 
         conn.close()
         source_db.close()
+
+    def test_pack(self, upgrade=False):
+        import newt.db
+        if upgrade:
+            conn = newt.db.connection(self.dsn, keep_history=self.keep_history)
+            conn.close()
+            # emulate an upgrade by dropping the delete trigger
+            from relstorage.adapters.postgresql.adapter import select_driver
+            pg_conn = select_driver().connect(self.dsn)
+            cursor = pg_conn.cursor()
+            cursor.execute(
+                "drop function if exists newt_delete_on_state_delete() cascade")
+            pg_conn.commit()
+            cursor.close()
+            pg_conn.close()
+        conn = newt.db.connection(self.dsn, keep_history=self.keep_history)
+        conn.root.a = Object(a=1)
+        conn.root.b = Object(a=2)
+        conn.commit()
+        conn.root.a.a = 3
+        del conn.root.b
+        conn.commit()
+        conn.db().pack()
+        conn.commit()
+        self.assertEqual(
+            [(dict(a=3), )],
+            conn.query_data("select state from newt where state ? 'a'"),
+            )
+        conn.close()
+
+    def test_pack_upgrade(self):
+        self.test_pack(True)
+
+    def test_drop_all(self):
+        import newt.db
+        storage = newt.db.storage(self.dsn, keep_history=self.keep_history)
+        storage.close()
+        storage._adapter.schema.drop_all()
+        from relstorage.adapters.postgresql.adapter import select_driver
+        pg_conn = select_driver().connect(self.dsn)
+        cursor = pg_conn.cursor()
+        cursor.execute(
+            "select 1 from pg_catalog.pg_trigger "
+            "where tgname = 'newt_delete_on_state_delete_trigger'")
+        self.assertEqual([], list(cursor))
+        cursor.execute("""
+        select from information_schema.tables
+        where table_schema = 'public' AND table_name = 'newt'
+        """)
+        self.assertEqual([], list(cursor))
+
+class HPAdapterTests(AdapterTests):
+
+    layer = MininalTestLayer('HPAdapterTests')
+    keep_history = True
 
 
 # Make sure we didn't break anything:
@@ -187,6 +243,7 @@ class HFFromFile(UseAdapter, hftestbase.HistoryFreeFromFileStorage):
 def test_suite():
     suite = unittest.TestSuite()
     suite.addTest(unittest.makeSuite(AdapterTests))
+    suite.addTest(unittest.makeSuite(HPAdapterTests))
     suite.addTest(unittest.makeSuite(HPTests, "check"))
     suite.addTest(unittest.makeSuite(HPToFile, "check"))
     suite.addTest(unittest.makeSuite(HPFromFile, "check"))
