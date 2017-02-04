@@ -68,7 +68,7 @@ class AdapterTests(DBSetup, unittest.TestCase):
         storage.copyTransactionsFrom(source_db.storage)
         storage.close()
 
-        conn = newt.db.connection(self.dsn)
+        conn = newt.db.connection(self.dsn, keep_history=self.keep_history)
         self.__assertBasicData(conn, o)
 
         conn.close()
