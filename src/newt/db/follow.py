@@ -77,6 +77,7 @@ class Updates:
         with closing(pg_connection(self.dsn)) as conn:
             with closing(conn.cursor()) as cursor:
                 keep_history = determine_keep_history(cursor, self.keep_history)
+
                 if keep_history:
                     self._query = self._query.replace(
                         'object_state s',
