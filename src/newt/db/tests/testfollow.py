@@ -1,4 +1,5 @@
 import unittest
+from zope.testing.wait import wait
 
 from .. import pg_connection
 from . import base
@@ -81,6 +82,12 @@ class FollowTests(base.DBSetup, unittest.TestCase):
             [list(range(14, 28))],
             )
 
+    def wait_equal(self, expect, got):
+        try:
+            wait(lambda : expect == got)
+        except Exception:
+            self.assertEqual(expect, got)
+
     def test_update_iterator_follow(self, poll_timeout=99):
         self.store(1, 1, 2)
         self.store(2, 1, 2)
@@ -98,13 +105,7 @@ class FollowTests(base.DBSetup, unittest.TestCase):
         thread.setDaemon(True)
         thread.start()
 
-        from zope.testing.wait import wait
-        def wait_equal(e, g):
-            try:
-                wait(lambda : e==g)
-            except Exception:
-                raise
-
+        wait_equal = self.wait_equal
         try:
             wait_equal([[(2, 1), (2, 2)]], data); del data[:]
             self.store(3, 3, 4)
