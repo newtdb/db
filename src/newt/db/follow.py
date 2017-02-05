@@ -2,6 +2,7 @@ import logging
 
 from . import pg_connection
 from ._util import closing, table_exists
+from ._adapter import determine_keep_history
 
 logger = logging.getLogger(__name__)
 
@@ -75,13 +76,7 @@ class Updates:
     def __iter__(self):
         with closing(pg_connection(self.dsn)) as conn:
             with closing(conn.cursor()) as cursor:
-                keep_history = self.keep_history
-                if keep_history is None:
-                    cursor.execute(
-                        "select 1 from pg_catalog.pg_class "
-                        "where relname = 'current_object'")
-                    keep_history = bool(list(cursor))
-
+                keep_history = determine_keep_history(cursor, self.keep_history)
                 if keep_history:
                     self._query = self._query.replace(
                         'object_state s',

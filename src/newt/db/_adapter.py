@@ -115,7 +115,8 @@ def _create_newt_delete_trigger(cursor, keep_history):
       execute procedure newt_delete_on_state_delete();
     """)
 
-def create_newt(cursor, keep_history):
+def create_newt(cursor, keep_history=None):
+    keep_history = determine_keep_history(cursor, keep_history)
     cursor.execute("""
     create table newt (
       zoid bigint primary key,
@@ -150,3 +151,15 @@ class SchemaInstaller(
                 )
         self.connmanager.open_and_call(callback)
         super(SchemaInstaller, self).drop_all()
+
+def determine_keep_history(cursor, keep_history=None):
+    """Determine whether the RelStorage databases is set to keep history.
+    """
+    if keep_history is None:
+        # We don't know, so sniff
+        cursor.execute(
+            "select 1 from pg_catalog.pg_class "
+            "where relname = 'current_object'")
+        keep_history = bool(list(cursor))
+
+    return keep_history
