@@ -144,12 +144,7 @@ declare
 begin
   select tid from current_object where zoid = OLD.zoid into current_tid;
   if current_tid is null or current_tid = OLD.tid then
-    delete from newt n
-    where n.zoid = OLD.zoid and not exists (
-      select
-      from current_object c
-      where c.zoid = OLD.zoid and c.tid = OLD.tid
-      );
+    delete from newt where zoid = OLD.zoid;
   end if;
   return OLD;
 end;
