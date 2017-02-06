@@ -108,8 +108,9 @@ class Mover(relstorage.adapters.postgresql.mover.PostgreSQLObjectMover):
     """
 
     def move_from_temp(self, cursor, tid, txn_has_blobs):
+        r = super(Mover, self).move_from_temp(cursor, tid, txn_has_blobs)
         cursor.execute(self._move_json_sql)
-        return super(Mover, self).move_from_temp(cursor, tid, txn_has_blobs)
+        return r
 
     def restore(self, cursor, batcher, oid, tid, data):
         super(Mover, self).restore(cursor, batcher, oid, tid, data)
@@ -124,6 +125,52 @@ class Mover(relstorage.adapters.postgresql.mover.PostgreSQLObjectMover):
             rowkey=oid,
             size=len(state),
             )
+
+_newt_delete_on_state_delete = """
+create function newt_delete_on_state_delete() returns trigger
+as $$
+begin
+  delete from newt where zoid = OLD.zoid;
+  return old;
+end;
+$$ language plpgsql;
+"""
+
+_newt_delete_on_state_delete_HP = """
+create function newt_delete_on_state_delete() returns trigger
+as $$
+declare
+  current_tid bigint;
+begin
+  select tid from current_object where zoid = OLD.zoid into current_tid;
+  if current_tid is null or current_tid = OLD.tid then
+    delete from newt where zoid = OLD.zoid;
+  end if;
+  return OLD;
+end;
+$$ language plpgsql;
+"""
+
+def _create_newt_delete_trigger(cursor, keep_history):
+    cursor.execute(
+        _newt_delete_on_state_delete_HP if keep_history else
+        _newt_delete_on_state_delete)
+    cursor.execute("""
+    create trigger newt_delete_on_state_delete_trigger
+      after delete on object_state for each row
+      execute procedure newt_delete_on_state_delete();
+    """)
+
+def create_newt(cursor, keep_history):
+    cursor.execute("""
+    create table newt (
+      zoid bigint primary key,
+      class_name text,
+      ghost_pickle bytea,
+      state jsonb);
+    create index newt_json_idx on newt using gin (state);
+    """)
+    _create_newt_delete_trigger(cursor, keep_history)
 
 class SchemaInstaller(
     relstorage.adapters.postgresql.schema.PostgreSQLSchemaInstaller):
@@ -140,14 +187,22 @@ class SchemaInstaller(
 
     def create(self, cursor):
         super(SchemaInstaller, self).create(cursor)
-        self._create_newt(cursor)
+        create_newt(cursor, self.keep_history)
 
     def update_schema(self, cursor, tables):
         if 'newt' not in tables:
             self._create_newt(cursor)
+        cursor.execute(
+            "select 1 from pg_catalog.pg_trigger "
+            "where tgname = 'newt_delete_on_state_delete_trigger'")
+        if not list(cursor):
+            _create_newt_delete_trigger(cursor, self.keep_history)
 
     def drop_all(self):
         def callback(_conn, cursor):
             cursor.execute("drop table if exists newt")
+            cursor.execute(
+                "drop function if exists newt_delete_on_state_delete() cascade"
+                )
         self.connmanager.open_and_call(callback)
         super(SchemaInstaller, self).drop_all()

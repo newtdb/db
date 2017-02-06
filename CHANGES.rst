@@ -4,7 +4,8 @@ Changes
 0.2.1 (unreleased)
 ==================
 
-- Nothing changed yet.
+- Fixed: Packing wasn't handled correctly. Objects removed during
+  packing weren't removed from the ``newt`` table.
 
 
 0.2.0 (2017-01-30)
