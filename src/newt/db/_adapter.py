@@ -3,6 +3,7 @@ import relstorage.adapters.postgresql.mover
 import relstorage.adapters.postgresql.schema
 
 from .jsonpickle import Jsonifier
+from ._util import trigger_exists
 
 class Adapter(relstorage.adapters.postgresql.PostgreSQLAdapter):
 
@@ -139,10 +140,7 @@ class SchemaInstaller(
     def update_schema(self, cursor, tables):
         if 'newt' not in tables:
             self._create_newt(cursor)
-        cursor.execute(
-            "select 1 from pg_catalog.pg_trigger "
-            "where tgname = 'newt_delete_on_state_delete_trigger'")
-        if not list(cursor):
+        if not trigger_exists(cursor, 'newt_delete_on_state_delete_trigger'):
             _create_newt_delete_trigger(cursor, self.keep_history)
 
     def drop_all(self):

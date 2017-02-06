@@ -102,7 +102,7 @@ def main(args=None):
     with closing(pg_connection(dsn)) as conn:
         with closing(conn.cursor()) as cursor:
             tid = follow.get_progress_tid(conn, __name__)
-            if tid < 0 and not table_exists(conn, 'newt'):
+            if tid < 0 and not table_exists(cursor, 'newt'):
                 from ._adapter import _newt_ddl
                 cursor.execute(_newt_ddl)
             conn.commit()

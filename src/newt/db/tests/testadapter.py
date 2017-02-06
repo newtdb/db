@@ -114,7 +114,7 @@ class AdapterTests(DBSetup, unittest.TestCase):
         pg_conn = select_driver().connect(self.dsn)
         cursor = pg_conn.cursor()
         cursor.execute(
-            "select 1 from pg_catalog.pg_trigger "
+            "select from pg_catalog.pg_trigger "
             "where tgname = 'newt_delete_on_state_delete_trigger'")
         self.assertEqual([], list(cursor))
         cursor.execute("""

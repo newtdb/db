@@ -1,7 +1,7 @@
 import logging
 
 from . import pg_connection
-from ._util import closing, table_exists
+from ._util import closing, table_exists, trigger_exists
 from ._adapter import determine_keep_history
 
 logger = logging.getLogger(__name__)
@@ -138,10 +138,8 @@ def listen(dsn, timeout_on_start=False, poll_timeout=300):
     with closing(pg_connection(dsn)) as conn:
         conn.autocommit = True
         with closing(conn.cursor()) as cursor:
-            cursor.execute(
-                "select 1 from pg_catalog.pg_trigger "
-                "where tgname = 'newt_trigger_notify_object_state_changed'")
-            if not list(cursor):
+            if not trigger_exists(cursor,
+                                  'newt_trigger_notify_object_state_changed'):
                 cursor.execute(trigger_sql)
 
             cursor.execute("LISTEN " + NOTIFY)
@@ -225,7 +223,7 @@ def _ex_progress(conn, cursor, sql, *args):
     except Exception:
         # Hm, maybe the table doesn't exist:
         conn.rollback()
-        if not table_exists(conn, 'newt_follow_progress'):
+        if not table_exists(cursor, 'newt_follow_progress'):
             cursor.execute("create table newt_follow_progress"
                            " (id text primary key, tid bigint)")
 
