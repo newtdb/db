@@ -9,5 +9,6 @@ Newt DB Topics
    text-configuration
    schemas
    for-zodb-users
+   admin
 
 .. todo:
