@@ -1,4 +1,5 @@
 import relstorage.adapters.postgresql
+import sys
 import threading
 import ZODB.serialize
 from zope.testing.wait import wait
@@ -145,7 +146,6 @@ class UpdaterTests(base.TestCase):
         from zope.testing.loggingsupport import InstalledHandler
         handler = InstalledHandler('newt.db.updater')
 
-        from newt.db import updater
         self.assertEqual(1, updater.main([self.dsn]))
         self.assertEqual(
             "newt.db.updater ERROR\n"
@@ -190,7 +190,6 @@ class UpdaterTests(base.TestCase):
         self.ex("Insert into newt values(99, 'foo', 'boo', '42')")
 
         # Start the updater and wait for it to do some things:
-        from .. import updater
         self.assertEqual(0, updater.main([self.dsn, '-g']))
 
         # The garbage is gone:
@@ -211,3 +210,101 @@ class UpdaterTests(base.TestCase):
 
         # The garbage is gone:
         self.assertEqual([()], self.fetch("select from newt where zoid = 99"))
+
+    def test_nagios(self):
+        # Setup newt:
+        from .._adapter import _newt_ddl
+        self.ex(_newt_ddl)
+
+        # Lose follow_progress:
+        self.ex("drop table newt_follow_progress")
+
+        # Main and newt dbs are empty:
+        self.assertEqual([], self.fetch("select from object_state"))
+        self.assertEqual([], self.fetch("select from newt"))
+
+        # Because the progress table doesn't exist yet, we get an error.
+        import mock
+        writes = []
+        with mock.patch('sys.stdout.write', side_effect=writes.append):
+            self.assertEqual(2, updater.main([self.dsn, '--nagios', '1,99']))
+            self.assertEqual('Updater has not run\n', ''.join(writes))
+
+        # Create follower table:
+        self.assertEqual(self.last_tid(), -1)
+
+        # Main and newt dbs are empty:
+        self.assertEqual([], self.fetch("select from object_state"))
+        self.assertEqual([], self.fetch("select from newt"))
+
+        # So we're OK.
+        writes = []
+        with mock.patch('sys.stdout.write', side_effect=writes.append):
+            self.assertEqual(0, updater.main([self.dsn, '--nagios', '1,99']))
+            self.assertEqual('No transactions\n', ''.join(writes))
+
+        from ZODB.TimeStamp import TimeStamp
+        from ZODB.utils import u64
+        def make_tid(*args):
+            return u64(TimeStamp(*args).raw())
+
+        # If somehow the updater has progress, but there's no data:
+        tid = make_tid(2017, 1, 2, 3, 4, 5.6)
+        follow.set_progress_tid(self.conn, updater.__name__, tid)
+        writes = []
+        with mock.patch('sys.stdout.write', side_effect=writes.append):
+            self.assertEqual(2, updater.main([self.dsn, '--nagios', '1,99']))
+            self.assertEqual('Updater saw data but there was None\n',
+                             ''.join(writes))
+
+        # Conversely, if the updater hasn't committed anything, but there's data
+        follow.set_progress_tid(self.conn, updater.__name__, -1)
+        self.store_obs(tid, (1, Object(a=1)), (2, Object(a=2)))
+        writes = []
+        with mock.patch('sys.stdout.write', side_effect=writes.append):
+            self.assertEqual(2, updater.main([self.dsn, '--nagios', '1,99']))
+            self.assertEqual("Updater hasn't done anything\n",
+                             ''.join(writes))
+
+        # It's weird if the updater is ahead:
+        follow.set_progress_tid(self.conn, updater.__name__,
+                                make_tid(2017, 1, 2, 3, 4, 5.7))
+        writes = []
+        with mock.patch('sys.stdout.write', side_effect=writes.append):
+            self.assertEqual(2, updater.main([self.dsn, '--nagios', '1,99']))
+            self.assertEqual("Updater is ahead\n",
+                             ''.join(writes))
+
+        # It's cool if the update has caught up:
+        follow.set_progress_tid(self.conn, updater.__name__,
+                                make_tid(2017, 1, 2, 3, 4, 5.6))
+        writes = []
+        with mock.patch('sys.stdout.write', side_effect=writes.append):
+            self.assertEqual(0, updater.main([self.dsn, '--nagios', '1,99']))
+            self.assertEqual("OK | 0.000\n", ''.join(writes))
+            # Oh look! Metric!
+
+        # Or a tad behind:
+        follow.set_progress_tid(self.conn, updater.__name__,
+                                make_tid(2017, 1, 2, 3, 4, 5.5))
+        writes = []
+        with mock.patch('sys.stdout.write', side_effect=writes.append):
+            self.assertEqual(0, updater.main([self.dsn, '--nagios', '1,99']))
+            self.assertEqual("OK | 0.100\n", ''.join(writes))
+
+        # Not so cool
+        follow.set_progress_tid(self.conn, updater.__name__,
+                                make_tid(2017, 1, 2, 3, 4, 4.5))
+        writes = []
+        with mock.patch('sys.stdout.write', side_effect=writes.append):
+            self.assertEqual(1, updater.main([self.dsn, '--nagios', '1,99']))
+            self.assertEqual("Updater is behind | 1.100\n", ''.join(writes))
+
+        # Badness!
+        follow.set_progress_tid(self.conn, updater.__name__,
+                                make_tid(2017, 1, 2, 3, 2, 4.5))
+        writes = []
+        with mock.patch('sys.stdout.write', side_effect=writes.append):
+            self.assertEqual(2, updater.main([self.dsn, '--nagios', '1,99']))
+            self.assertEqual("Updater is too far behind | 121.100\n",
+                             ''.join(writes))

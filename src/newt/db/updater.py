@@ -7,6 +7,7 @@ import itertools
 import logging
 import relstorage.adapters.postgresql
 import relstorage.options
+import sys
 
 from . import pg_connection
 from . import follow
@@ -76,6 +77,21 @@ transformations. It should be run *after* restarting the regulsr
 updater.
 """)
 
+parser.add_argument(
+    '--nagios',
+    help="""\
+Check the status of the updater.
+
+The status is checked by checking the updater lag, which is the
+difference between the last transaction committed to the database, and
+the last transaction processed by the updater.  The option takes 2
+numbers, separated by commas.  The first number is the lag, in
+seconds, for the updater to be considered to be OK.  The second number
+is the maximum lag for which the updater isn't considered to be in
+error. For example, 1,99 indicates OK if 1 or less, WARNING if more
+than 1 and less than or equal to 99 and ERROR of more than 99 seconds.
+""")
+
 insert_sql = """
 insert into newt (zoid, class_name, ghost_pickle, state)
 values %s
@@ -134,6 +150,43 @@ def main(args=None):
     dsn = options.connection_string
     with closing(pg_connection(dsn)) as conn:
         with closing(conn.cursor()) as cursor:
+            if options.nagios:
+                if not table_exists(cursor, 'newt_follow_progress'):
+                    print("Updater has not run")
+                    return 2
+                cursor.execute("select max(tid) from object_state")
+                [[stid]] = cursor
+                utid = follow.get_progress_tid(conn, __name__)
+                if stid is None:
+                    if utid == -1:
+                        print("No transactions")
+                        return 0
+                    else:
+                        print("Updater saw data but there was None")
+                        return 2
+                elif utid < 0:
+                    print("Updater hasn't done anything")
+                    return 2
+                else:
+                    from ZODB.utils import p64
+                    from ZODB.TimeStamp import TimeStamp
+                    lag = (TimeStamp(p64(stid)).timeTime() -
+                           TimeStamp(p64(utid)).timeTime())
+                    if lag < 0:
+                        print("Updater is ahead")
+                        return 2
+                    warn, error = map(int, options.nagios.split(','))
+                    flag = lambda : ("%99.3f" % lag).strip()
+                    if lag > error:
+                        print("Updater is too far behind | %s" % flag())
+                        return 2
+                    elif lag > warn:
+                        print("Updater is behind | %s" % flag())
+                        return 1
+                    else:
+                        print("OK | %s" % flag())
+                        return 0
+
             tid = follow.get_progress_tid(conn, __name__)
             if tid < 0 and not table_exists(cursor, 'newt'):
                 from ._adapter import _newt_ddl
@@ -180,4 +233,4 @@ def main(args=None):
                 _update_newt(conn, cursor, jsonifier, Binary, batch)
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
