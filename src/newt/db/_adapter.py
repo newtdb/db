@@ -115,15 +115,17 @@ create table newt (
 create index newt_json_idx on newt using gin (state);
 """
 
+DELETE_TRIGGER = 'newt_delete_on_state_delete_trigger'
+
 def _create_newt_delete_trigger(cursor, keep_history):
     cursor.execute(
         _newt_delete_on_state_delete_HP if keep_history else
         _newt_delete_on_state_delete)
     cursor.execute("""
-    create trigger newt_delete_on_state_delete_trigger
+    create trigger %s
       after delete on object_state for each row
       execute procedure newt_delete_on_state_delete();
-    """)
+    """ % DELETE_TRIGGER)
 
 def create_newt(cursor, keep_history=None):
     keep_history = determine_keep_history(cursor, keep_history)
@@ -140,7 +142,7 @@ class SchemaInstaller(
     def update_schema(self, cursor, tables):
         if 'newt' not in tables:
             self._create_newt(cursor)
-        if not trigger_exists(cursor, 'newt_delete_on_state_delete_trigger'):
+        if not trigger_exists(cursor, DELETE_TRIGGER):
             _create_newt_delete_trigger(cursor, self.keep_history)
 
     def drop_all(self):
