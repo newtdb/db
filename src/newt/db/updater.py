@@ -103,8 +103,8 @@ def main(args=None):
         with closing(conn.cursor()) as cursor:
             tid = follow.get_progress_tid(conn, __name__)
             if tid < 0 and not table_exists(conn, 'newt'):
-                from ._adapter import create_newt
-                create_newt(cursor)
+                from ._adapter import _newt_ddl
+                cursor.execute(_newt_ddl)
             conn.commit()
             if options.redo:
                 start_tid = -1

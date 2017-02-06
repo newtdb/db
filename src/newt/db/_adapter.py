@@ -105,6 +105,15 @@ end;
 $$ language plpgsql;
 """
 
+_newt_ddl = """\
+create table newt (
+  zoid bigint primary key,
+  class_name text,
+  ghost_pickle bytea,
+  state jsonb);
+create index newt_json_idx on newt using gin (state);
+"""
+
 def _create_newt_delete_trigger(cursor, keep_history):
     cursor.execute(
         _newt_delete_on_state_delete_HP if keep_history else
@@ -117,14 +126,7 @@ def _create_newt_delete_trigger(cursor, keep_history):
 
 def create_newt(cursor, keep_history=None):
     keep_history = determine_keep_history(cursor, keep_history)
-    cursor.execute("""
-    create table newt (
-      zoid bigint primary key,
-      class_name text,
-      ghost_pickle bytea,
-      state jsonb);
-    create index newt_json_idx on newt using gin (state);
-    """)
+    cursor.execute(_newt_ddl)
     _create_newt_delete_trigger(cursor, keep_history)
 
 class SchemaInstaller(
