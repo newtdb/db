@@ -1,7 +1,7 @@
 Changes
 =======
 
-0.2.1 (unreleased)
+0.2.1 (2017-02-06)
 ==================
 
 - Fixed: Packing wasn't handled correctly. Objects removed during
