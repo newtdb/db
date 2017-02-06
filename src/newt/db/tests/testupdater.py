@@ -37,6 +37,9 @@ class UpdaterTests(base.TestCase):
         self.conn.close()
         super(UpdaterTests, self).tearDown()
 
+    def fetch(self, query):
+        self.ex(query)
+        return list(self.cursor)
 
     def store_obs(self, tid, *obs):
         writer = ZODB.serialize.ObjectWriter()
@@ -125,3 +128,86 @@ class UpdaterTests(base.TestCase):
         self.wait_tid(5)
         self.ex("select zoid from newt")
         self.assertEqual([int(*r) for r in self.cursor], [3])
+
+
+    def test_detect_delete_trigger(self):
+        # Cause the delete trigger to be deleted by opening a newt.db
+        # connection:
+        import newt.db
+        self.ex("drop table object_state")
+        newt.db.storage(self.dsn).close()
+
+        # Verify the trigger is there:
+        from newt.db._util import trigger_exists
+        from newt.db._adapter import DELETE_TRIGGER
+        self.assertTrue(trigger_exists(self.cursor, DELETE_TRIGGER))
+
+        from zope.testing.loggingsupport import InstalledHandler
+        handler = InstalledHandler('newt.db.updater')
+
+        from newt.db import updater
+        self.assertEqual(1, updater.main([self.dsn]))
+        self.assertEqual(
+            "newt.db.updater ERROR\n"
+            "  The Newt DB delete trigger exists.\n"
+            "It is incompatible with the updater.\n"
+            "Use -T to remove it.",
+            str(handler))
+        handler.clear()
+
+        # Now run the updater with the -T option, which causes the
+        # trigger to be deleted.  (We also use -g, which causes it to
+        # to GC and nothing else, which makes it stop, so we don't
+        # have to run in a thread.)
+        self.assertEqual(0, updater.main([self.dsn, '-Tg']))
+        self.assertEqual("", str(handler))
+
+        # And the trigger is gone.
+        self.assertFalse(trigger_exists(self.cursor, DELETE_TRIGGER))
+
+    def test_gc_on_startup(self):
+        # Normally, on startup, the updater does GC.
+
+        # Create garbage
+        from .._adapter import _newt_ddl
+        self.ex(_newt_ddl)
+        self.ex("Insert into newt values(99, 'foo', 'boo', '42')")
+
+        # Start the updater and wait for it to do some things:
+        self.start_updater()
+        self.store_obs(2, (1, Object(a=1, b=1)), (2, Object(a=2, b=2)))
+        self.wait_tid(2)
+
+        # The garbage is gone:
+        self.assertEqual([], self.fetch("select from newt where zoid = 99"))
+
+    def test_gc_only_no_startup(self):
+        # Normally, on startup, the updater does GC.
+
+        # Create garbage
+        from .._adapter import _newt_ddl
+        self.ex(_newt_ddl)
+        self.ex("Insert into newt values(99, 'foo', 'boo', '42')")
+
+        # Start the updater and wait for it to do some things:
+        from .. import updater
+        self.assertEqual(0, updater.main([self.dsn, '-g']))
+
+        # The garbage is gone:
+        self.assertEqual([], self.fetch("select from newt where zoid = 99"))
+
+    def test_no_gc_on_startup(self):
+        # Normally, on startup, the updater does GC.
+
+        # Create garbage
+        from .._adapter import _newt_ddl
+        self.ex(_newt_ddl)
+        self.ex("Insert into newt values(99, 'foo', 'boo', '42')")
+
+        # Start the updater and wait for it to do some things:
+        self.start_updater("-G")
+        self.store_obs(2, (1, Object(a=1, b=1)), (2, Object(a=2, b=2)))
+        self.wait_tid(2)
+
+        # The garbage is gone:
+        self.assertEqual([()], self.fetch("select from newt where zoid = 99"))

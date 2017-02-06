@@ -11,7 +11,8 @@ import relstorage.options
 from . import pg_connection
 from . import follow
 from .jsonpickle import Jsonifier
-from ._util import closing, table_exists
+from ._adapter import DELETE_TRIGGER
+from ._util import closing, table_exists, trigger_exists
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,38 @@ parser.add_argument(
 parser.add_argument(
     '-d', '--driver', default='auto',
     help='Provide an explicit Postgres driver name (e.g. psycopg2)')
+
+parser.add_argument(
+    '-T', '--remove-delete-trigger', action="store_true",
+    help="""\
+Remove the Newt DB delete trigger, if it exists.
+
+The Newt DB delete trigger is incompatible with the updater.  It can cause
+deadlock errors is packed while the updater is running.
+""")
+
+gc_sql = """
+delete from newt n where not exists (
+  select from object_state s where n.zoid = s.zoid)
+"""
+
+parser.add_argument(
+    '-g', '--gc-only', action="store_true",
+    help="""\
+Collect garbage and exit.
+
+This removes Newt DB records that don't have corresponding database records.
+This is done by executing:
+
+%s
+
+Note that garbage collection is normally performed on startup unless
+the -G option is used.
+""" % gc_sql)
+
+parser.add_argument(
+    '-G', '--no-gc', action="store_true",
+    help="Don't perform garbage collection on startup.")
 
 parser.add_argument(
     '--redo', action='store_true',
@@ -105,7 +138,29 @@ def main(args=None):
             if tid < 0 and not table_exists(cursor, 'newt'):
                 from ._adapter import _newt_ddl
                 cursor.execute(_newt_ddl)
+            elif trigger_exists(cursor, DELETE_TRIGGER):
+                if options.remove_delete_trigger:
+                    cursor.execute("drop trigger %s on object_state" %
+                                   DELETE_TRIGGER)
+                else:
+                    logger.error(
+                        "The Newt DB delete trigger exists.\n"
+                        "It is incompatible with the updater.\n"
+                        "Use -T to remove it.")
+                    return 1
+
+            if not options.no_gc:
+                cursor.execute(gc_sql)
+
             conn.commit()
+
+            if options.gc_only:
+                if options.no_gc:
+                    logger.warn(
+                        "Exiting after garbage collection,\n"
+                        "but garbage collection was suppressed.")
+                return 0
+
             if options.redo:
                 start_tid = -1
                 end_tid = tid
