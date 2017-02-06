@@ -11,5 +11,6 @@ Newt DB Topics
    schemas
    for-zodb-users
    following
+   updater
 
 .. todo:

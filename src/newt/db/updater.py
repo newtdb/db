@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('connection_string', help='Postgresql connection string')
-parser.add_argument('-t', '--poll-timeout', type=int, default=30,
+parser.add_argument('-t', '--poll-timeout', type=int, default=300,
                     help='Change-poll timeout, in seconds')
 parser.add_argument('-m', '--transaction-size-limit', type=int, default=100000,
                     help='Transaction size limit (aproximate)')
