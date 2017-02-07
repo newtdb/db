@@ -92,15 +92,6 @@ error. For example, 1,99 indicates OK if 1 or less, WARNING if more
 than 1 and less than or equal to 99 and ERROR of more than 99 seconds.
 """)
 
-insert_sql = """
-insert into newt (zoid, class_name, ghost_pickle, state)
-values %s
-on conflict (zoid)
-do update set class_name   = excluded.class_name,
-              ghost_pickle = excluded.ghost_pickle,
-              state        = excluded.state
-"""
-
 def _update_newt(conn, cursor, jsonifier, Binary, batch):
     ex = cursor.execute
     mogrify = cursor.mogrify
@@ -112,6 +103,11 @@ def _update_newt(conn, cursor, jsonifier, Binary, batch):
             break
         tid = data[-1][0]
 
+        # Delete any existing records for the values. 2 reasons:
+        # a) Make sire that new invalid data removes old valid data, and
+        # b) Don't depend on upsert.
+        ex("delete from newt where zoid = any(%s)", ([d[1] for d in data], ))
+
         # Convert, filtering out null conversions (uninteresting classes)
         to_save = []
         for tid, zoid, state in data:
@@ -120,7 +116,8 @@ def _update_newt(conn, cursor, jsonifier, Binary, batch):
                 to_save.append((zoid, class_name, Binary(ghost_pickle), state))
 
         if to_save:
-            ex(insert_sql %
+            ex("insert into newt (zoid, class_name, ghost_pickle, state)"
+               " values " +
                ', '.join(mogrify('(%s, %s, %s, %s)', d).decode('ascii')
                          for d in to_save)
                )

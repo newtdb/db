@@ -50,10 +50,12 @@ class UpdaterTests(base.TestCase):
                          ).decode('ascii')
             for (oid, ob) in obs
             )
+        self.ex("begin")
+        self.ex("delete from object_state where zoid = any(%s)",
+                ([oid for oid, ob in obs], ))
         self.ex("insert into object_state(zoid, tid, state) values %s"
-                " on conflict (zoid)"
-                " do update set tid=excluded.tid, state=excluded.state"
                 % values)
+        self.ex("commit")
 
     thread = None
     def start_updater(self, *args):

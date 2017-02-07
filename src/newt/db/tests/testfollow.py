@@ -36,18 +36,17 @@ class FollowTests(base.DBSetup, unittest.TestCase):
                             for oid in oids)
         cvalues = ", ".join(self.mogrify("(%s, %s)", (oid, tid))
                             for oid in oids)
+        self.ex("begin")
         if self.history_preserving:
             self.ex("insert into object_state values {}".format(svalues))
-            self.ex("""\
-            insert into current_object values {}
-            on conflict (zoid) do update set tid=excluded.tid
-            """.format(cvalues))
+            self.ex("delete from current_object where zoid = any(%s)",
+                    (list(oids), ))
+            self.ex("insert into current_object values {}".format(cvalues))
         else:
-            self.ex("""
-            insert into object_state values {}
-            on conflict (zoid)
-            do update set tid=excluded.tid, state=excluded.state
-            """.format(svalues))
+            self.ex("delete from object_state where zoid = any(%s)",
+                    (list(oids), ))
+            self.ex("insert into object_state values {}".format(svalues))
+        self.ex("commit")
 
     def test_non_empty_generator(self):
         from ..follow import non_empty_generator
@@ -99,6 +98,7 @@ class FollowTests(base.DBSetup, unittest.TestCase):
         data = []
         def collect():
             for batch in updates(self.conn.dsn, poll_timeout=poll_timeout):
+                batch = list(batch)
                 data.append([(int(r[0]), int(r[1])) for r in batch])
 
         thread = threading.Thread(target=collect)
