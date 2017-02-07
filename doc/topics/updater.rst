@@ -125,14 +125,12 @@ To use Newt's asynchronous updater:
 Garbage collection
 ==================
 
-See the topic on :doc:`packing`.
-
 The asynchronous updater tracks new database inserts and updates.
-When a database is packed, records are removed without generating
-updates.  Those deletes won't be reflected in the Newt DB.  You can
-tell the updater to clean up Newt DB records for which there are
-no-longer database records by either restarting it, or running it with
-the ``-g`` option::
+When a database is :ref:`packed <packing-reference-label>`, records are
+removed without generating updates.  Those deletes won't be reflected
+in the Newt DB.  You can tell the updater to clean up Newt DB records
+for which there are no-longer database records by either restarting
+it, or running it with the ``-g`` option::
 
   newt-updater -g postgresql://localhost/mydb
 
