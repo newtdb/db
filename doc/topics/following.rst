@@ -105,3 +105,53 @@ the saved transaction id::
 
 You'd then pass the retrieved transaction identifier as the
 ``start_tid`` argument to :py:func:`~newt.db.follow.updates`.
+
+Garbage collection
+==================
+
+One complication in dealing with updating external data is garbage
+collection.  When a Newt DB database is
+:ref:`packed <packing-reference-label>`, records are removed without
+generating updates.  Data that's removed from Newt DB when it's packed
+should be removed from external representations as well.  The easiest
+way to do this is by splitting packing into 3 steps:
+
+1. Run `zodbpack
+   <http://relstorage.readthedocs.io/en/latest/zodbpack.html>`_ with
+   the ``--prepack`` option::
+
+      zodbpack -d 1 --prepack CONFIG_FILE
+
+   This tells ``zeopack`` to stop after identifying garbage.
+
+2. Call the :py:func:`newt.db.follow.garbage` function to get an
+   iterator of object ids that will be deleted in the second phase of
+   packing::
+
+     import newt.db.follow
+     for zoid in newt.db.follow.garbage(dsn):
+         my_remove_external_data_function(zoid)
+
+   .. -> src
+
+      >>> from newt.db._util import closing
+      >>> with closing(newt.db.pg_connection(dsn)) as conn:
+      ...     with closing(conn.cursor()) as cursor:
+      ...         cursor.execute("insert into pack_object values"
+      ...                        "(42, true, 0, true),"
+      ...                        "(43, false, 0, true)"
+      ...                        )
+      ...         conn.commit()
+      >>> src = src.replace('my_remove_external_data_function', 'print')
+      >>> exec(src)
+      43
+
+3. Run `zodbpack
+   <http://relstorage.readthedocs.io/en/latest/zodbpack.html>`_ with
+   the ``--use-prepack-state`` option::
+
+     zodbpack -d 1 --use-prepack-state CONFIG_FILE
+
+   This tells ``zeopack`` to remove the garbage identified in the
+   first step.
+
