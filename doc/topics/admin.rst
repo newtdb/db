@@ -16,6 +16,8 @@ Docker images, which have self-contained PostgreSQL installations.
 Simple binary installations are a good choice for development
 environments.
 
+.. _packing-reference-label:
+
 Packing
 =======
 
@@ -69,7 +71,3 @@ For more information, see the `zodbpack documentation
    container in a separate transaction. In this case, the object is
    temporarily garbage and, if you're unlucky, it could be garbage
    collection while temporarily garbage.
-
-
-
-
