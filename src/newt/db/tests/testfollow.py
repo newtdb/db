@@ -123,6 +123,35 @@ class FollowTests(base.DBSetup, unittest.TestCase):
     def test_update_iterator_follow_no_timeout(self):
         self.test_update_iterator_follow(None)
 
+    def test_garbage(self):
+        self.ex("drop table object_state")
+        if self.history_preserving:
+            self.ex("drop table current_object")
+
+        import newt.db
+        db = newt.db.DB(self.dsn, keep_history=self.history_preserving)
+        conn = db.open()
+        from .._object import Object
+        conn.root.x = Object()
+        conn.root.y = Object()
+        conn.commit()
+        from ZODB.utils import u64
+        zoids = set(u64(o._p_oid) for o in (conn.root.x, conn.root.y))
+
+        del conn.root.x
+        del conn.root.y
+        conn.commit()
+
+        import time
+        from ZODB.serialize import referencesf
+        db.storage.pack(time.time(), referencesf, prepack_only=True)
+
+        import newt.db.follow
+        self.assertEqual(zoids, set(newt.db.follow.garbage(self.dsn)))
+
+        conn.close()
+        db.close()
+
 class FollowTestsHP(FollowTests):
 
     history_preserving = True

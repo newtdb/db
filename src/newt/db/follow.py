@@ -302,3 +302,10 @@ def stop_updates(conn):
     """
     with closing(conn.cursor()) as cursor:
         cursor.execute("notify %s, 'STOP'" % NOTIFY)
+
+def garbage(dsn):
+    with closing(pg_connection(dsn)) as conn:
+        with closing(conn.cursor('find_garbage')) as cursor:
+            cursor.execute("select zoid from pack_object where not keep")
+            for r in cursor:
+                yield r[0]
