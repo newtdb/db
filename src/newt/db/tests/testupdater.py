@@ -228,7 +228,8 @@ class UpdaterTests(base.TestCase):
         # Because the progress table doesn't exist yet, we get an error.
         import mock
         writes = []
-        with mock.patch('sys.stdout.write', side_effect=writes.append):
+        with mock.patch('sys.stdout') as stdout:
+            stdout.write.side_effect=writes.append
             self.assertEqual(2, updater.main([self.dsn, '--nagios', '1,99']))
             self.assertEqual('Updater has not run\n', ''.join(writes))
 
@@ -241,7 +242,8 @@ class UpdaterTests(base.TestCase):
 
         # So we're OK.
         writes = []
-        with mock.patch('sys.stdout.write', side_effect=writes.append):
+        with mock.patch('sys.stdout') as stdout:
+            stdout.write.side_effect=writes.append
             self.assertEqual(0, updater.main([self.dsn, '--nagios', '1,99']))
             self.assertEqual('No transactions\n', ''.join(writes))
 
@@ -254,7 +256,8 @@ class UpdaterTests(base.TestCase):
         tid = make_tid(2017, 1, 2, 3, 4, 5.6)
         follow.set_progress_tid(self.conn, updater.__name__, tid)
         writes = []
-        with mock.patch('sys.stdout.write', side_effect=writes.append):
+        with mock.patch('sys.stdout') as stdout:
+            stdout.write.side_effect=writes.append
             self.assertEqual(2, updater.main([self.dsn, '--nagios', '1,99']))
             self.assertEqual('Updater saw data but there was None\n',
                              ''.join(writes))
@@ -263,7 +266,8 @@ class UpdaterTests(base.TestCase):
         follow.set_progress_tid(self.conn, updater.__name__, -1)
         self.store_obs(tid, (1, Object(a=1)), (2, Object(a=2)))
         writes = []
-        with mock.patch('sys.stdout.write', side_effect=writes.append):
+        with mock.patch('sys.stdout') as stdout:
+            stdout.write.side_effect=writes.append
             self.assertEqual(2, updater.main([self.dsn, '--nagios', '1,99']))
             self.assertEqual("Updater hasn't done anything\n",
                              ''.join(writes))
@@ -272,7 +276,8 @@ class UpdaterTests(base.TestCase):
         follow.set_progress_tid(self.conn, updater.__name__,
                                 make_tid(2017, 1, 2, 3, 4, 5.7))
         writes = []
-        with mock.patch('sys.stdout.write', side_effect=writes.append):
+        with mock.patch('sys.stdout') as stdout:
+            stdout.write.side_effect=writes.append
             self.assertEqual(2, updater.main([self.dsn, '--nagios', '1,99']))
             self.assertEqual("Updater is ahead\n",
                              ''.join(writes))
@@ -281,7 +286,8 @@ class UpdaterTests(base.TestCase):
         follow.set_progress_tid(self.conn, updater.__name__,
                                 make_tid(2017, 1, 2, 3, 4, 5.6))
         writes = []
-        with mock.patch('sys.stdout.write', side_effect=writes.append):
+        with mock.patch('sys.stdout') as stdout:
+            stdout.write.side_effect=writes.append
             self.assertEqual(0, updater.main([self.dsn, '--nagios', '1,99']))
             self.assertEqual("OK | 0.000\n", ''.join(writes))
             # Oh look! Metric!
@@ -290,7 +296,8 @@ class UpdaterTests(base.TestCase):
         follow.set_progress_tid(self.conn, updater.__name__,
                                 make_tid(2017, 1, 2, 3, 4, 5.5))
         writes = []
-        with mock.patch('sys.stdout.write', side_effect=writes.append):
+        with mock.patch('sys.stdout') as stdout:
+            stdout.write.side_effect=writes.append
             self.assertEqual(0, updater.main([self.dsn, '--nagios', '1,99']))
             self.assertEqual("OK | 0.100\n", ''.join(writes))
 
@@ -298,7 +305,8 @@ class UpdaterTests(base.TestCase):
         follow.set_progress_tid(self.conn, updater.__name__,
                                 make_tid(2017, 1, 2, 3, 4, 4.5))
         writes = []
-        with mock.patch('sys.stdout.write', side_effect=writes.append):
+        with mock.patch('sys.stdout') as stdout:
+            stdout.write.side_effect=writes.append
             self.assertEqual(1, updater.main([self.dsn, '--nagios', '1,99']))
             self.assertEqual("Updater is behind | 1.100\n", ''.join(writes))
 
@@ -306,7 +314,8 @@ class UpdaterTests(base.TestCase):
         follow.set_progress_tid(self.conn, updater.__name__,
                                 make_tid(2017, 1, 2, 3, 2, 4.5))
         writes = []
-        with mock.patch('sys.stdout.write', side_effect=writes.append):
+        with mock.patch('sys.stdout') as stdout:
+            stdout.write.side_effect=writes.append
             self.assertEqual(2, updater.main([self.dsn, '--nagios', '1,99']))
             self.assertEqual("Updater is too far behind | 121.100\n",
                              ''.join(writes))
