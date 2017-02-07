@@ -10,7 +10,7 @@ Newt DB Topics
    admin
    schemas
    for-zodb-users
-   following
    updater
+   following
 
 .. todo:
