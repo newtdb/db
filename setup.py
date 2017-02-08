@@ -1,5 +1,5 @@
 name = 'newt.db'
-version = '0.2.2'
+version = '0.2.3.dev0'
 
 install_requires = ['setuptools', 'RelStorage[postgresql]', 'six']
 extras_require = dict(test=['manuel', 'mock', 'zope.testing', 'zc.zlibstorage'])
