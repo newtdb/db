@@ -51,4 +51,5 @@ setup(
     extras_require = extras_require,
     tests_require = extras_require['test'],
     classifiers = classifiers,
+    include_package_data = True,
     )
