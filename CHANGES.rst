@@ -12,6 +12,12 @@ Changes
 
 - Created a JSON conversion object to support conversion customization.
 
+0.2.2 (2017-02-08)
+==================
+
+- Fixed a packaging bug.
+
+
 0.2.1 (2017-02-06)
 ==================
 
