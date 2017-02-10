@@ -20,34 +20,18 @@ class ZODBURITests(unittest.TestCase):
         self.assertEqual(
             ('postgresql://jim:123@foo.bar/mydb?params1=value1&param2=value3',
              dict(keep_history=True, driver='psycopg2'),
-             dict(pool_size = 1,
-                  pool_timeout = 2,
-                  cache_size = 3,
-                  cache_size_bytes = 4,
-                  historical_pool_size=5,
-                  historical_cache_size=6,
-                  historical_cache_size_bytes=7,
-                  historical_timeout=8,
+             dict(connection_pool_size = 1,
+                  connection_cache_size = 3,
                   database_name='main',
-                  xrefs=True,
-                  large_record_size=9,
                   ),
              ),
             self.parse("newt://jim:123@foo.bar/mydb"
                        "?params1=value1"
                        "&keep_history=True"
                        "&driver=psycopg2"
-                       "&pool_size=1"
-                       "&pool_timeout=2"
-                       "&cache_size=3"
-                       "&cache_size_bytes=4"
-                       "&historical_pool_size=5"
-                       "&historical_cache_size=6"
-                       "&historical_cache_size_bytes=7"
-                       "&historical_timeout=8"
+                       "&connection_pool_size=1"
+                       "&connection_cache_size=3"
                        "&database_name=main"
-                       "&xrefs=True"
-                       "&large_record_size=9"
                        "&param2=value3"
                        ),
             )

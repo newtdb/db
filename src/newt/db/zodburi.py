@@ -23,17 +23,9 @@ storage_options = dict(
     )
 
 db_options = dict(
-    pool_size = int,
-    pool_timeout = int,
-    cache_size = int,
-    cache_size_bytes = int,
-    historical_pool_size=int,
-    historical_cache_size=int,
-    historical_cache_size_bytes=int,
-    historical_timeout=int,
+    connection_pool_size = int,
+    connection_cache_size = int,
     database_name=str,
-    xrefs=parse_bool,
-    large_record_size=int,
 )
 
 def resolve_uri(uri):
