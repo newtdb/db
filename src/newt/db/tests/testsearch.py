@@ -26,11 +26,17 @@ class SearchTests(DBSetup, unittest.TestCase):
         for i in range(9):
             tid = self.store(i, i=i)
 
-        obs = self.conn.search(
-            "select * from newt "
-            "where state->>'i' >= %s and state->>'i' <= %s "
-            "order by zoid ", '2', '5')
+        sql = """
+        select * from newt
+        where state->>'i' >= %s and state->>'i' <= %s
+        order by zoid
+        """
+        obs = self.conn.search(sql, '2', '5')
+        self.assertEqual([2, 3, 4, 5], [o.i for o in obs])
 
+        # test stand-alone API:
+        from .. import search
+        obs = search.search(self.conn, sql, '2', '5')
         self.assertEqual([2, 3, 4, 5], [o.i for o in obs])
 
         # separate conn (to make sure we get new ghosts, and
@@ -44,6 +50,12 @@ class SearchTests(DBSetup, unittest.TestCase):
         self.assertEqual(set(o._p_oid for o in obs),  # yes, these are
                          set(o._p_oid for o in obs2)) #  persistent objects :)
 
+        # test stand-alone API:
+        obs2 = search.where(self.conn,
+                            "state->>'i' >= %(a)s and state->>'i' <= %(b)s",
+                            a='2', b='5')
+        self.assertEqual([2, 3, 4, 5], sorted(o.i for o in obs2))
+
 
     def test_search_batch(self):
         for i in range(99):
@@ -51,13 +63,12 @@ class SearchTests(DBSetup, unittest.TestCase):
 
         conn2 = self.db.open()
 
-        total, batch = conn2.search_batch(
-            "select * from newt "
-            "where (state->>'i')::int >= %(a)s and (state->>'i')::int <= %(b)s "
-            "order by zoid ",
-            dict(a=2, b=90),
-            10, 20
-            )
+        sql = """
+        select * from newt
+        where (state->>'i')::int >= %(a)s and (state->>'i')::int <= %(b)s
+        order by zoid
+        """
+        total, batch = conn2.search_batch(sql, dict(a=2, b=90), 10, 20)
         self.assertEqual(total, 89)
 
         self.assertEqual(list(range(12, 32)), [o.i for o in batch])
@@ -65,20 +76,40 @@ class SearchTests(DBSetup, unittest.TestCase):
         # We didn't end up with all of the objects getting loaded:
         self.assertEqual(len(conn2._cache), 20)
 
+        # test stand-alone API:
+        from .. import search
+        totalbatch = search.search_batch(
+            conn2, sql, dict(a=2, b=90), 10, 20)
+        self.assertEqual((total, batch), totalbatch)
+
     def test_create_text_index_sql(self):
+        from .. import search
         self.assertEqual(
             expect_simple_text,
             self.conn.create_text_index_sql('mytext', 'text'),
+            )
+        self.assertEqual(
+            expect_simple_text,
+            search.create_text_index_sql('mytext', 'text'),
             )
 
         self.assertEqual(
             expect_text,
             self.conn.create_text_index_sql('mytext', ['text', 'title']),
             )
+        self.assertEqual(
+            expect_text,
+            search.create_text_index_sql('mytext', ['text', 'title']),
+            )
 
         self.assertEqual(
             expect_weighted_text,
             self.conn.create_text_index_sql(
+                'mytext', 'text', ['title', 'description']),
+            )
+        self.assertEqual(
+            expect_weighted_text,
+            search.create_text_index_sql(
                 'mytext', 'text', ['title', 'description']),
             )
 
@@ -91,13 +122,27 @@ class SearchTests(DBSetup, unittest.TestCase):
                 'keywords',
                 "state ->> 'really important'"),
             )
+        self.assertEqual(
+            expect_more_weighted_text,
+            search.create_text_index_sql(
+                'mytext',
+                'text',
+                ['title', 'description'],
+                'keywords',
+                "state ->> 'really important'"),
+            )
 
         self.assertEqual(
             expect_A_text,
             self.conn.create_text_index_sql('mytext', A='text'),
             )
+        self.assertEqual(
+            expect_A_text,
+            search.create_text_index_sql('mytext', A='text'),
+            )
 
         self.assertRaises(TypeError, self.conn.create_text_index_sql, 'mytext')
+        self.assertRaises(TypeError, search.create_text_index_sql, 'mytext')
 
     def test_create_text_index(self):
         self.conn.create_text_index('txt', 'text')
@@ -116,6 +161,47 @@ class SearchTests(DBSetup, unittest.TestCase):
             set((self.conn.root.a, self.conn.root.c)),
             set(self.conn.where("txt(state) @@ 'bar | green'")),
             )
+
+    def test_create_text_index_standalone(self):
+        from .. import search
+        search.create_text_index(self.conn, 'txt', 'text')
+        self.store('a', text='foo bar')
+        self.store('b', text='foo baz')
+        self.store('c', text='green eggs and spam')
+        self.assertEqual(
+            set((self.conn.root.a, self.conn.root.b)),
+            set(self.conn.where("txt(state) @@ 'foo'")),
+            )
+        self.assertEqual(
+            set((self.conn.root.a, )),
+            set(self.conn.where("txt(state) @@ 'foo & bar'")),
+            )
+        self.assertEqual(
+            set((self.conn.root.a, self.conn.root.c)),
+            set(self.conn.where("txt(state) @@ 'bar | green'")),
+            )
+
+    def test_query_data(self):
+        from .. import search
+        self.store('a', text='foo bar')
+        self.store('b', text='foo baz')
+        self.store('c', text='green eggs and spam')
+
+        self.assertEqual(
+            [[1]],
+            [list(map(int, r)) for r in
+             self.conn.query_data(
+                 """select zoid from newt
+                 where state @> '{"text": "foo bar"}'""")
+             ])
+        self.assertEqual(
+            [[1]],
+            [list(map(int, r)) for r in
+             search.query_data(
+                 self.conn,
+                 """select zoid from newt
+                 where state @> '{"text": "foo bar"}'""")
+             ])
 
 expect_simple_text = """\
 create or replace function mytext(state jsonb) returns tsvector as $$

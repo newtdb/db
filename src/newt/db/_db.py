@@ -28,12 +28,10 @@ class Connection:
 
     def search(self, query, *args, **kw):
         return _search.search(self, query, *args, **kw)
-
     search.__doc__ = _search.search.__doc__
 
     def search_batch(self, query, args, batch_start, batch_size):
         return _search.search_batch(self, query, args, batch_start, batch_size)
-
     search_batch.__doc__ = _search.search_batch.__doc__
 
     def create_text_index(self, fname, D=None, C=None, B=None, A=None):
@@ -44,6 +42,19 @@ class Connection:
         return _search.create_text_index_sql(fname, D, C, B, A)
     create_text_index_sql.__doc__ = _search.create_text_index_sql.__doc__
     create_text_index_sql = staticmethod(create_text_index_sql)
+
+    def query_data(self, query, *args, **kw):
+        return _search.query_data(self, query, *args, **kw)
+    query_data.__doc__ = _search.query_data.__doc__
+
+    def where(self, query_tail, *args, **kw):
+        return _search.where(self, query_tail, *args, **kw)
+    where.__doc__ = _search.where.__doc__
+
+    def where_batch(self, query_tail, args, batch_start, batch_size):
+        return _search.where_batch(
+            self, query_tail, args, batch_start, batch_size)
+    where_batch.__doc__ = _search.where_batch.__doc__
 
     def __init__(self, connection):
         self._connection = connection # A ZODB connection
@@ -66,80 +77,6 @@ class Connection:
             self._connection.transaction_manager.commit()
         else:
             self._connection.commit(ignore)
-
-    def query_data(self, query, *args, **kw):
-        """Query the newt Postgres database for raw data.
-
-        Query parameters may be provided as either positional
-        arguments or keyword arguments. They are inserted into the
-        query where there are placeholders of the form: ``%s`` for
-        positional arguments, or ``%(NAME)s`` for keyword arguments.
-
-        A sequence of data tuples is returned.
-        """
-        if kw:
-            if args:
-                raise TypeError("Only positional or keyword arguments"
-                                " may be provided, not both.")
-            args = kw
-        cursor = self._connection._storage.ex_cursor()
-        try:
-            cursor.execute(query, args)
-            result = list(cursor)
-        finally:
-            try:
-                cursor.close()
-            except Exception:
-                pass # whatever :)
-
-        return result
-
-    def where(self, query_tail, *args, **kw):
-        """Query for objects satisfying criteria.
-
-        This is a convenience wrapper for the ``search`` method.  The
-        first arument is SQL text for query criteria to be included in
-        an SQL where clause.
-
-        This mehod simply appends it's first argument to::
-
-          select * from newt where
-
-        and so may also contain code that can be included after a
-        where clause, such as an ``ORDER BY`` clause.
-
-        Query parameters may be provided as either positional
-        arguments or keyword arguments.  They are inserted into the
-        query where there are placeholders of the form: ``%s`` for
-        positional arguments, or ``%(NAME)s`` for keyword arguments.
-
-        A sequence of newt objects is returned.
-        """
-        return self.search("select * from newt where " + query_tail,
-                           *args, **kw)
-
-    def where_batch(self, query_tail, args, batch_start, batch_size):
-        """Query for batch of objects satisfying criteria
-
-        Like the ``where`` method, this is a convenience wrapper for
-        the ``search_batch`` method.
-
-        Query parameters are provided using the second, ``args``
-        argument, which may be a tuple or a dictionary.  They are
-        inserted into the query where there are placeholders of the
-        form ``%s`` for an arguments tuple or ``%(NAME)s`` for an
-        arguments dict.
-
-        The ``batch_size`` and ``batch_size`` arguments are used to
-        specify the result batch.  An ``ORDER BY`` clause should be
-        used to order results.
-
-        The total result count and sequence of batch result objects
-        are returned.
-        """
-        return self.search_batch("select * from newt where " + query_tail,
-                                 args, batch_start, batch_size)
-
 
 def _split_options(
     # DB options
