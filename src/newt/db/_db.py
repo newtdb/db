@@ -1,3 +1,4 @@
+import relstorage.adapters.postgresql
 import relstorage.storage
 import relstorage.options
 import ZODB
@@ -139,6 +140,7 @@ class Connection:
         return self.search_batch("select * from newt where " + query_tail,
                                  args, batch_start, batch_size)
 
+
 def _split_options(
     # DB options
     pool_size=7,
@@ -210,3 +212,14 @@ def connection(dsn, **kw):
     return Connection(
         ZODB.connection(storage(dsn, **storage_options), **db_options)
         )
+
+def pg_connection(dsn, driver_name='auto'):
+    """Create a PostgreSQL (not newt) database connection
+
+    This function should be used rather than, for example, calling
+    ``psycopg2.connect``, because it can use other Postgres drivers
+    depending on the Python environment and available modules.
+    """
+    options = relstorage.options.Options(driver=driver_name)
+    driver = relstorage.adapters.postgresql.select_driver(options)
+    return driver.connect(dsn)

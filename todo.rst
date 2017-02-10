@@ -22,3 +22,4 @@ Medium priorities:
 
 - Async support
 
+- handle transformed data in the jsonifier

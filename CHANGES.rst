@@ -1,11 +1,16 @@
 Changes
 =======
 
-0.2.3 (unreleased)
+0.3.0 (unreleased)
 ==================
 
-- Nothing changed yet.
+- Added an API for following database changes.
 
+- Exposed JSON conversion as an API that can be used to for other
+  applications than updating the newt table, like updating external
+  indexes.
+
+- Created a JSON conversion object to support conversion customization.
 
 0.2.2 (2017-02-08)
 ==================
@@ -18,7 +23,6 @@ Changes
 
 - Fixed: Packing wasn't handled correctly. Objects removed during
   packing weren't removed from the ``newt`` table.
-
 
 0.2.0 (2017-01-30)
 ==================

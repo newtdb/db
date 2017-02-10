@@ -5,6 +5,8 @@ install_requires = ['setuptools', 'RelStorage[postgresql]', 'six']
 extras_require = dict(test=['manuel', 'mock', 'zope.testing', 'zc.zlibstorage'])
 
 entry_points = """
+[console_scripts]
+newt-updater = newt.db.updater:main
 """
 
 from setuptools import setup

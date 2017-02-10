@@ -1,13 +1,9 @@
-import json
-import logging
-import re
 import relstorage.adapters.postgresql
 import relstorage.adapters.postgresql.mover
 import relstorage.adapters.postgresql.schema
 
-from .jsonpickle import JsonUnpickler
-
-logger = logging.getLogger(__name__)
+from .jsonpickle import Jsonifier
+from ._util import trigger_exists
 
 class Adapter(relstorage.adapters.postgresql.PostgreSQLAdapter):
 
@@ -30,48 +26,7 @@ class Adapter(relstorage.adapters.postgresql.PostgreSQLAdapter):
         )
         self.connmanager.set_on_store_opened(self.mover.on_store_opened)
 
-skip_class = re.compile('BTrees[.]|ZODB.blob').match
-unicode_surrogates = re.compile(r'\\ud[89a-f][0-9a-f]{2,2}', flags=re.I)
-NoneNoneNone = None, None, None
-def jsonify(oid, data):
-    if not data:
-        return NoneNoneNone
-    unpickler = JsonUnpickler(data)
-    try:
-        klass = json.loads(unpickler.load())
-
-        if isinstance(klass, list):
-            klass, args = klass
-            if isinstance(klass, list):
-                class_name = '.'.join(klass)
-            else:
-                class_name = klass['name']
-        else:
-            class_name = klass['name']
-
-        if skip_class(class_name):
-            return NoneNoneNone
-
-        ghost_pickle = data[:unpickler.pos]
-        state = unpickler.load()
-
-        # xstate = xform(zoid, class_name, state)
-        # if xstate is not state:
-        #     state = xstate
-        #     if not isinstance(state, bytes):
-        #         state = json.dumps(state)
-
-        # Remove unicode surrogate strings, as postgres utf-8
-        # will reject them.
-
-        state = unicode_surrogates.sub(' ', state).replace('\\u0000', ' ')
-    except Exception:
-        logger.warn("Failed pickle load, oid: %r, pickle starts: %r",
-                    oid, data[:50], exc_info=True)
-        return NoneNoneNone
-
-    return class_name, ghost_pickle, state
-
+        self.mover.jsonifier = Jsonifier()
 
 class Mover(relstorage.adapters.postgresql.mover.PostgreSQLObjectMover):
 
@@ -87,7 +42,7 @@ class Mover(relstorage.adapters.postgresql.mover.PostgreSQLObjectMover):
 
     def store_temp(self, cursor, batcher, oid, prev_tid, data):
         super(Mover, self).store_temp(cursor, batcher, oid, prev_tid, data)
-        class_name, ghost_pickle, state = jsonify(oid, data)
+        class_name, ghost_pickle, state = self.jsonifier(oid, data)
         if class_name is None:
             return
         batcher.delete_from('temp_store_json', zoid=oid)
@@ -114,7 +69,7 @@ class Mover(relstorage.adapters.postgresql.mover.PostgreSQLObjectMover):
 
     def restore(self, cursor, batcher, oid, tid, data):
         super(Mover, self).restore(cursor, batcher, oid, tid, data)
-        class_name, ghost_pickle, state = jsonify(oid, data)
+        class_name, ghost_pickle, state = self.jsonifier(oid, data)
         if class_name is None:
             return
         batcher.delete_from('newt', zoid=oid)
@@ -151,39 +106,34 @@ end;
 $$ language plpgsql;
 """
 
+_newt_ddl = """\
+create table newt (
+  zoid bigint primary key,
+  class_name text,
+  ghost_pickle bytea,
+  state jsonb);
+create index newt_json_idx on newt using gin (state);
+"""
+
+DELETE_TRIGGER = 'newt_delete_on_state_delete_trigger'
+
 def _create_newt_delete_trigger(cursor, keep_history):
     cursor.execute(
         _newt_delete_on_state_delete_HP if keep_history else
         _newt_delete_on_state_delete)
     cursor.execute("""
-    create trigger newt_delete_on_state_delete_trigger
+    create trigger %s
       after delete on object_state for each row
       execute procedure newt_delete_on_state_delete();
-    """)
+    """ % DELETE_TRIGGER)
 
-def create_newt(cursor, keep_history):
-    cursor.execute("""
-    create table newt (
-      zoid bigint primary key,
-      class_name text,
-      ghost_pickle bytea,
-      state jsonb);
-    create index newt_json_idx on newt using gin (state);
-    """)
+def create_newt(cursor, keep_history=None):
+    keep_history = determine_keep_history(cursor, keep_history)
+    cursor.execute(_newt_ddl)
     _create_newt_delete_trigger(cursor, keep_history)
 
 class SchemaInstaller(
     relstorage.adapters.postgresql.schema.PostgreSQLSchemaInstaller):
-
-    def _create_newt(self, cursor):
-        cursor.execute("""
-        create table newt (
-          zoid bigint primary key,
-          class_name text,
-          ghost_pickle bytea,
-          state jsonb);
-        create index newt_json_idx on newt using gin (state);
-        """)
 
     def create(self, cursor):
         super(SchemaInstaller, self).create(cursor)
@@ -192,10 +142,7 @@ class SchemaInstaller(
     def update_schema(self, cursor, tables):
         if 'newt' not in tables:
             self._create_newt(cursor)
-        cursor.execute(
-            "select 1 from pg_catalog.pg_trigger "
-            "where tgname = 'newt_delete_on_state_delete_trigger'")
-        if not list(cursor):
+        if not trigger_exists(cursor, DELETE_TRIGGER):
             _create_newt_delete_trigger(cursor, self.keep_history)
 
     def drop_all(self):
@@ -206,3 +153,15 @@ class SchemaInstaller(
                 )
         self.connmanager.open_and_call(callback)
         super(SchemaInstaller, self).drop_all()
+
+def determine_keep_history(cursor, keep_history=None):
+    """Determine whether the RelStorage databases is set to keep history.
+    """
+    if keep_history is None:
+        # We don't know, so sniff
+        cursor.execute(
+            "select 1 from pg_catalog.pg_class "
+            "where relname = 'current_object'")
+        keep_history = bool(list(cursor))
+
+    return keep_history

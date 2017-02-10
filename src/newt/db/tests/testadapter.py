@@ -1,7 +1,6 @@
 import persistent.mapping
 import os
 import pickle
-from relstorage._compat import db_binary_to_bytes
 import relstorage.tests
 from relstorage.tests import hftestbase
 from relstorage.tests import hptestbase
@@ -30,14 +29,14 @@ class AdapterTests(DBSetup, unittest.TestCase):
             from newt where zoid = %s""",
             u64(o._p_oid))
         self.assertEqual(class_name, 'newt.db._object.Object')
-        self.assertEqual(pickle.loads(db_binary_to_bytes(ghost_pickle)), Object)
+        self.assertEqual(pickle.loads(ghost_pickle), Object)
         self.assertEqual(state, {'a': 1})
 
         [(class_name, ghost_pickle, state)] = conn.query_data("""\
             select class_name, ghost_pickle, state
             from newt where zoid = 0""")
         self.assertEqual(class_name, 'persistent.mapping.PersistentMapping')
-        self.assertEqual(pickle.loads(db_binary_to_bytes(ghost_pickle)),
+        self.assertEqual(pickle.loads(ghost_pickle),
                          persistent.mapping.PersistentMapping)
         self.assertEqual(
             state,
@@ -115,7 +114,7 @@ class AdapterTests(DBSetup, unittest.TestCase):
         pg_conn = select_driver().connect(self.dsn)
         cursor = pg_conn.cursor()
         cursor.execute(
-            "select 1 from pg_catalog.pg_trigger "
+            "select from pg_catalog.pg_trigger "
             "where tgname = 'newt_delete_on_state_delete_trigger'")
         self.assertEqual([], list(cursor))
         cursor.execute("""

@@ -376,3 +376,40 @@ class JsonUnpicklerDBTests(unittest.TestCase):
         _ = self.load()
         _ = self.load()
 
+    def test_jsonifier(self):
+        from zope.testing.loggingsupport import InstalledHandler
+        handler = InstalledHandler('newt.db.jsonpickle')
+        from ..jsonpickle import Jsonifier
+
+        jsonifier = Jsonifier()
+
+        p, tid = self.conn._storage.load(z64)
+        class_name, ghost_pickle, state = jsonifier('0', p)
+        self.assertEqual('persistent.mapping.PersistentMapping', class_name)
+        self.assertEqual('{"data": {}}', state)
+        self.assertTrue(p.startswith(ghost_pickle) and
+                        ghost_pickle[-1:] == b'.' and
+                        b'persistent.mapping' in ghost_pickle)
+
+        # custon skip_class
+        jsonifier2 = Jsonifier(skip_class=lambda c: 1)
+        self.assertEqual((None, None, None), jsonifier2('0', p))
+
+        # empty records are skipped:
+        self.assertEqual((None, None, None), jsonifier('0', ''))
+
+        # BTrees are skipped by default
+        from BTrees.OOBTree import BTree
+        self.root.x = BTree()
+        self.conn.transaction_manager.commit()
+        p, tid = self.conn._storage.load(self.root.x._p_oid)
+        self.assertEqual((None, None, None), jsonifier('0', p))
+
+        # errors are logged, and return Nones:
+        self.assertEqual(handler.records, [])
+        self.assertEqual((None, None, None), jsonifier('foo', b'badness'))
+        self.assertEqual(
+            [r.getMessage().replace("b'", "'") for r in handler.records],
+            ["Failed pickle load, oid: 'foo', pickle starts: 'badness'"])
+
+        handler.uninstall()

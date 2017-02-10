@@ -1,7 +1,11 @@
-from relstorage.adapters.postgresql import adapter
 import gc
 import sys
+import unittest
+
 PYPY = hasattr(sys, 'pypy_version_info')
+
+from .. import pg_connection
+from .._util import closing
 
 class DBSetup(object):
 
@@ -13,7 +17,7 @@ class DBSetup(object):
 
     def setUp(self, call_super=True):
         self.dbname = self.__class__.__name__.lower() + '_newt_test_database'
-        self.base_conn = adapter.select_driver().connect('')
+        self.base_conn = pg_connection('')
         self.base_conn.autocommit = True
         self.base_cursor = self.base_conn.cursor()
         self.drop_db()
@@ -23,6 +27,11 @@ class DBSetup(object):
             super(DBSetup, self).setUp()
 
     def drop_db(self):
+        self.base_cursor.execute(
+            """
+            select pg_terminate_backend(pid) from pg_stat_activity
+            where datname = %s
+            """, (self.dbname,))
         self.base_cursor.execute('drop database if exists ' + self.dbname)
 
     def tearDown(self):
@@ -39,3 +48,6 @@ class DBSetup(object):
         self.drop_db()
         self.base_cursor.close()
         self.base_conn.close()
+
+class TestCase(DBSetup, unittest.TestCase):
+    pass
