@@ -1,7 +1,7 @@
 Changes
 =======
 
-0.3.0 (unreleased)
+0.3.0 (2017-02-10)
 ==================
 
 - Added an API for following database changes.
