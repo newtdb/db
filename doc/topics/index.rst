@@ -12,5 +12,6 @@ Newt DB Topics
    for-zodb-users
    updater
    following
+   zodburi
 
 .. todo:

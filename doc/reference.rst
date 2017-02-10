@@ -27,6 +27,9 @@ newt.db module-level functions
 
       Commit the current transaction
 
+
+.. _search-module-label:
+
 newt.db.search module-level functions
 =====================================
 
