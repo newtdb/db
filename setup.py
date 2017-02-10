@@ -7,6 +7,9 @@ extras_require = dict(test=['manuel', 'mock', 'zope.testing', 'zc.zlibstorage'])
 entry_points = """
 [console_scripts]
 newt-updater = newt.db.updater:main
+
+[zodburi.resolvers]
+newt = newt.db.zodburi:resolve_uri
 """
 
 from setuptools import setup
