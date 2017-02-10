@@ -27,11 +27,14 @@ newt.db module-level functions
 
       Commit the current transaction
 
+
+.. _search-module-label:
+
 newt.db.search module-level functions
 =====================================
 
 .. automodule:: newt.db.search
-   :members: search, search_batch,
+   :members: where, search, where_batch, search_batch, query_data,
              create_text_index_sql, create_text_index
 
 newt.db.follow module-level functions

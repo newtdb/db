@@ -12,6 +12,12 @@ Changes
 
 - Created a JSON conversion object to support conversion customization.
 
+- Added `zodburi
+  <http://docs.pylonsproject.org/projects/zodburi/en/latest/index.html>`_,
+  making it easier to use Newt DB with applications like `Pyramid
+  <http://docs.pylonsproject.org/projects/pyramid/en/latest/>`_ that
+  use zodburi.
+
 0.2.2 (2017-02-08)
 ==================
 
