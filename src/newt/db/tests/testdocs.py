@@ -39,6 +39,7 @@ def test_suite():
             p('getting-started'),
             p('topics', 'text-configuration'),
             p('topics', 'following'),
+            p('topics', 'zodburi'),
             setUp=setUp, tearDown=setupstack.tearDown,
             )
 

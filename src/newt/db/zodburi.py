@@ -48,7 +48,7 @@ def resolve_uri(uri):
                 dbkw[name] = db_options[name](value)
             else:
                 pgq.append(name + '=' + value)
-        pgq = '?' + '&'.join(pgq)
+        pgq = '?' + '&'.join(pgq) if pgq else ''
 
     dsn = "postgresql://" + netloc + path + pgq
 
