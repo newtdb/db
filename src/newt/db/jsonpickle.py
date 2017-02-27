@@ -170,6 +170,14 @@ special_classes = {
     'decimal.Decimal': lambda args: float(args[0]),
     }
 
+def instance(global_, args):
+    name = global_.name
+
+    if name in special_classes:
+        return special_classes[name](args)
+
+    return Instance(name, args)
+
 basic_types = (float, int, type(1<<99), type(b''), type(u''),
                tuple, Global, Bytes, frozenset)
 
@@ -191,18 +199,90 @@ class JsonUnpickler:
       >>> import pickle
       >>> apickle = pickle.dumps([1,2])
       >>> unpickler = JsonUnpickler(apickle)
-      >>> json_string = unpickler.load()
+      >>> unpickler.load()
+      '[1, 2]'
       >>> unpickler.pos == len(apickle)
       True
+
+    **Very advanced** customization of special type handling:
+      You can supply an optional reducer to handle special built-in
+      objects or subclasses. For example, suppose we have a special
+      string class::
+
+        >>> class MySpecialString(str):
+        ...    pass
+
+      .. make pickleable:
+
+        >>> import newt.db.jsonpickle
+        >>> newt.db.jsonpickle.MySpecialString = MySpecialString
+
+      We can define a reducer that handles our special strings::
+
+        >>> def reducer(name, data):
+        ...     if name.endswith('MySpecialString'):
+        ...         return data
+
+      A reducer will be called with a dotted class name and some data.
+      What the data is depends on the class.  It may be state, an
+      arguments tuple, or a tuple containing an argument tuple, and a
+      keyword argument dictionary.  The data may also contain
+      instances of objects defined by the ``newt.db.jsonpickle``
+      module, if so, you may just be able to use them.  If not and
+      they're instances of ``GET`` or ``PUT`` objects, then they wrap
+      data which you can get via ``v`` attributes. If that doesn't
+      work, you may just need to give up.
+
+      Reducers must return an object that is serializable by the
+      standard ``json`` module, or that has a ``json_reduce`` method
+      that returns an object that can be serialized by the ``json``
+      module.
+
+      Here's an example usage:
+
+        >>> special_string = MySpecialString('Hi')
+        >>> JsonUnpickler(pickle.dumps(special_string), reducer).load()
+        '"Hi"'
+
+      If our reducer doesn't handler a class, by returning None, this
+      data are handled as usual::
+
+        >>> from datetime import date
+        >>> JsonUnpickler(pickle.dumps(date(2017, 2, 27)), reducer).load()
+        '"2017-02-27"'
+
+      Use the :py:func:`dumps` function to experiment.
     """
 
     cyclic = False
 
-    def __init__(self, pickle):
+    def __init__(self, pickle, reducer=None):
         self.stack = []
         self.append = self.stack.append
         self.marks = []
         self.memo = {}
+
+        if reducer is None:
+            self.instance = instance
+        else:
+            def rinstance(global_, args):
+                name = global_.name
+                if name == 'copy_reg._reconstructor':
+                    # Gaaaa, special case for user-defined classes
+                    (cls, base, state) = args
+                    r = reducer(cls.name, state)
+                else:
+                    r = reducer(name, args)
+
+                if r is not None:
+                    return r
+
+                if name in special_classes:
+                    return special_classes[name](args)
+
+                return Instance(name, args)
+            self.instance = rinstance
+
         self.set_pickle(pickle)
 
     def set_pickle(self, pickle):
@@ -349,13 +429,6 @@ class JsonUnpickler:
         args = self.pop(2)
         self.append(Global(*args))
 
-    def instance(self, global_, args):
-        name = global_.name
-        if name in special_classes:
-            return special_classes[name](args)
-
-        return Instance(name, args)
-
     def REDUCE(self, _):
         f, args = self.pop(2)
         self.append(self.instance(f,args))
@@ -394,7 +467,7 @@ class JsonUnpickler:
     def BINPERSID(self, _):
         self.stack[-1] = Persistent(self.stack[-1])
 
-def dumps(data, proto=3 if PY3 else 1):
+def dumps(data, reducer=None, proto=3 if PY3 else 1):
     """Dump an object to JSON using pickle and JsonUnpickler
 
     This is useful for seeing how objects will be pickled, especially
@@ -416,7 +489,7 @@ def dumps(data, proto=3 if PY3 else 1):
 
     """
     import pickle
-    return JsonUnpickler(pickle.dumps(data, proto)).load(
+    return JsonUnpickler(pickle.dumps(data, proto), reducer).load(
         sort_keys=True, indent=2).replace(' \n', '\n')
 
 unicode_surrogates = re.compile(r'\\ud[89a-f][0-9a-f]{2,2}', flags=re.I)

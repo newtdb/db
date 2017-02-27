@@ -24,7 +24,7 @@ import unittest
 import ZODB
 from ZODB.utils import z64, p64, maxtid
 
-from ..jsonpickle import JsonUnpickler
+from ..jsonpickle import JsonUnpickler, dumps
 
 class C(object):
     pass
@@ -233,6 +233,20 @@ class JsonUnpicklerProtocol0Tests(unittest.TestCase):
         data = decimal.Decimal(6)/decimal.Decimal(5)
         got = JsonUnpickler(pickle.dumps(data, self.proto)).load()
         self.assertEqual(got, '1.2')
+
+    def test_reducer_in_dumps(self):
+
+        def reducer(name, v):
+            if (name == 'datetime.date'):
+                [v] = v
+                if hasattr(v, 'data'):
+                    v = v.data
+                date = datetime.date(v)
+                return date.year, date.month, date.day
+
+        self.assertEqual(
+            '[\n  2017,\n  2,\n  27\n]',
+            dumps(datetime.date(2017, 2, 27), reducer, self.proto))
 
 class TZ(datetime.tzinfo):
     pass
