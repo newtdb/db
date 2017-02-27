@@ -221,13 +221,6 @@ class JsonUnpicklerProtocol0Tests(unittest.TestCase):
         # It's a bit awkward that JSON requires string property names
         self.assertEqual(got, '{"1": 1, "2": 1, "3": 1}')
 
-    def test_collections_OrderedDict(self):
-        import collections
-        data = collections.OrderedDict([(4, 3), (2, 1)])
-        got = JsonUnpickler(pickle.dumps(data, self.proto)).load(sort_keys=True)
-        # It's a bit awkward that JSON requires string property names
-        self.assertEqual(got, '{"2": 1, "4": 3}')
-
     def test_collections_defaultdict(self):
         import collections
         data = collections.defaultdict(int); data['a'] += 1; data['b'] += 2

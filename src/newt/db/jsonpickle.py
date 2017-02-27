@@ -166,7 +166,6 @@ special_classes = {
     'builtins.set': handle_set,
     'collections.deque': lambda args: args[0],
     'collections.Counter': lambda args: args[0],
-    'collections.OrderedDict': lambda args: dict(*args),
     'collections.defaultdict': lambda args: {},
     'decimal.Decimal': lambda args: float(args[0]),
     }
