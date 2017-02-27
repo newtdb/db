@@ -5,7 +5,7 @@ indexing, querying and reporting in external systems like Postgres and
 Elasticsearch.
 """
 import binascii
-from six import BytesIO
+from six import BytesIO, PY3
 from six.moves import copyreg
 import _codecs
 import datetime
@@ -164,6 +164,11 @@ special_classes = {
     '__builtin__.set': handle_set,
     'builtins.frozenset': handle_set,
     'builtins.set': handle_set,
+    'collections.deque': lambda args: args[0],
+    'collections.Counter': lambda args: args[0],
+    'collections.OrderedDict': lambda args: dict(*args),
+    'collections.defaultdict': lambda args: {},
+    'decimal.Decimal': lambda args: float(args[0]),
     }
 
 def instance(global_, args):
@@ -388,7 +393,6 @@ class JsonUnpickler:
     def BINPERSID(self, _):
         self.stack[-1] = Persistent(self.stack[-1])
 
-
 unicode_surrogates = re.compile(r'\\ud[89a-f][0-9a-f]{2,2}', flags=re.I)
 NoneNoneNone = None, None, None
 
@@ -467,3 +471,4 @@ class Jsonifier:
             return NoneNoneNone
 
         return class_name, ghost_pickle, state
+
