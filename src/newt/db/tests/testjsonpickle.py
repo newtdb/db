@@ -208,25 +208,6 @@ class JsonUnpicklerProtocol0Tests(unittest.TestCase):
         got = JsonUnpickler(pickle.dumps(data, self.proto)).load()
         self.assertEqual(got, '[[1, 2, 3], [4, 5, 6]]')
 
-    def test_collections_deque(self):
-        import collections
-        data = collections.deque((1,2,3))
-        got = JsonUnpickler(pickle.dumps(data, self.proto)).load()
-        self.assertEqual(got, '[1, 2, 3]')
-
-    def test_collections_Counter(self):
-        import collections
-        data = collections.Counter((1,2,3))
-        got = JsonUnpickler(pickle.dumps(data, self.proto)).load(sort_keys=True)
-        # It's a bit awkward that JSON requires string property names
-        self.assertEqual(got, '{"1": 1, "2": 1, "3": 1}')
-
-    def test_collections_defaultdict(self):
-        import collections
-        data = collections.defaultdict(int); data['a'] += 1; data['b'] += 2
-        got = JsonUnpickler(pickle.dumps(data, self.proto)).load(sort_keys=True)
-        self.assertEqual(got, '{"a": 1, "b": 2}')
-
     def test_Decimal(self):
         import decimal
         data = decimal.Decimal(6)/decimal.Decimal(5)
