@@ -47,7 +47,7 @@ newt.db.jsonpickle module-level functions
 =========================================
 
 .. automodule:: newt.db.jsonpickle
-   :members: JsonUnpickler, Jsonifier
+   :members: JsonUnpickler, Jsonifier, dumps
 
    .. autoclass:: newt.db.jsonpickle.Jsonifier
       :members: __init__, __call__
