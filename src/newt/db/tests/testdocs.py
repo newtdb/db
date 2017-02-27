@@ -33,7 +33,8 @@ def test_suite():
 
     p = lambda *names: os.path.join(doc, *names) + '.rst'
 
-    return manuel.testing.TestSuite(
+    return unittest.TestSuite((
+        manuel.testing.TestSuite(
             manuel.doctest.Manuel() + manuel.capture.Manuel(),
             p('fine-print'),
             p('getting-started'),
@@ -41,6 +42,6 @@ def test_suite():
             p('topics', 'following'),
             p('topics', 'zodburi'),
             setUp=setUp, tearDown=setupstack.tearDown,
-            )
-
-
+            ),
+        doctest.DocTestSuite('newt.db.jsonpickle'),
+        ))
