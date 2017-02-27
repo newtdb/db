@@ -167,13 +167,6 @@ special_classes = {
     'decimal.Decimal': lambda args: float(args[0]),
     }
 
-def instance(global_, args):
-    name = global_.name
-    if name in special_classes:
-        return special_classes[name](args)
-
-    return Instance(name, args)
-
 basic_types = (float, int, type(1<<99), type(b''), type(u''),
                tuple, Global, Bytes, frozenset)
 
@@ -192,6 +185,7 @@ class JsonUnpickler:
 
     Usage::
 
+      >>> import pickle
       >>> apickle = pickle.dumps([1,2])
       >>> unpickler = JsonUnpickler(apickle)
       >>> json_string = unpickler.load()
@@ -352,23 +346,31 @@ class JsonUnpickler:
         args = self.pop(2)
         self.append(Global(*args))
 
+    def instance(self, global_, args):
+        name = global_.name
+        if name in special_classes:
+            return special_classes[name](args)
+
+        return Instance(name, args)
+
     def REDUCE(self, _):
         f, args = self.pop(2)
-        self.append(instance(f,args))
+        self.append(self.instance(f,args))
 
     def BUILD(self, _):
         state = self.stack.pop()
         self.stack[-1].__setstate__(state)
 
     def INST(self, arg):
-        self.append(instance(Global(*arg.split()), tuple(self.pop_marked())))
+        self.append(self.instance(Global(*arg.split()),
+                                  tuple(self.pop_marked())))
 
     def OBJ(self, _):
         args = self.pop_marked()
-        self.append(instance(args[0], tuple(args[1:])))
+        self.append(self.instance(args[0], tuple(args[1:])))
 
     def NEWOBJ(self, _):
-        self.append(instance(*self.pop(2)))
+        self.append(self.instance(*self.pop(2)))
 
     def NEWOBJ_EX(self, _):
         cls, args, kw = self.pop(3)
@@ -377,7 +379,7 @@ class JsonUnpickler:
                 args = args, kw
             else:
                 args = kw
-        self.append(instance(cls, args))
+        self.append(self.instance(cls, args))
 
     def PROTO(self, _): pass
     def FRAME(self, _): pass
@@ -388,6 +390,31 @@ class JsonUnpickler:
 
     def BINPERSID(self, _):
         self.stack[-1] = Persistent(self.stack[-1])
+
+def dumps(data, proto=3 if PY3 else 1):
+    """Dump an object to JSON using pickle and JsonUnpickler
+
+    This is useful for seeing how objects will be pickled, especially
+    when creating custon reducers.
+
+    Usage::
+
+        >>> dumps(42)
+        '42'
+
+    Note that the JSON produced is a little prettier than the default
+    JSON because keys are sorted and indentation is used::
+
+        >>> print(dumps(dict(a=1, b=2)))
+        {
+          "a": 1,
+          "b": 2
+        }
+
+    """
+    import pickle
+    return JsonUnpickler(pickle.dumps(data, proto)).load(
+        sort_keys=True, indent=2).replace(' \n', '\n')
 
 unicode_surrogates = re.compile(r'\\ud[89a-f][0-9a-f]{2,2}', flags=re.I)
 NoneNoneNone = None, None, None

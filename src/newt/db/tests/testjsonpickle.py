@@ -13,6 +13,7 @@
 ##############################################################################
 from six.moves import copyreg
 import datetime
+import doctest
 import json
 from persistent.mapping import PersistentMapping
 import pickle
