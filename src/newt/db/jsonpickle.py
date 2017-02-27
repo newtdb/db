@@ -218,7 +218,7 @@ class JsonUnpickler:
 
         >>> def reducer(name, data):
         ...     if name.endswith('MySpecialString'):
-        ...         return data
+        ...         return data if isinstance(data, str) else data[0]
 
       A reducer will be called with a dotted class name and some data.
       What the data is depends on the class.  It may be state, an
