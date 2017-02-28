@@ -395,21 +395,43 @@ NoneNoneNone = None, None, None
 class Jsonifier:
 
     skip_class = re.compile('BTrees[.]|ZODB.blob').match
+    skip = object() # marker
 
-    def __init__(self, skip_class=None):
+    def __init__(self, skip_class=None, transform=None):
         """Create a callable for converting database data to Newt JSON
 
         Parameters:
 
         skip_class
           A callable that will be called with the class name extracted
-          from the data.  If the callable returns a true value, then data
-          won't be converted to JSON and ``(None, None, None)`` are
-          returned.  The default skips objects from the ``BTrees`` package and
-          blobs.
+          from the data.  If the callable returns a true value, then
+          data won't be converted to JSON and ``(None, None, None)``
+          are returned.  The default, which is available as the
+          ``skip_class`` attribute of the ``Jsonifier`` class, skips
+          objects from the ``BTrees`` package and blobs.
+
+        transform
+          A function that transforms a record's state JSON.
+
+          If provided, it should accept a class name and a state
+          bytes string in JSON format.
+
+          If the transform function should return a new state bytes
+          string or None. If None is returned, the original state is
+          used.
+
+          If the function returns an empty bytes string, then the Jsonifier
+          will return ``(None, None, None)``. In other words,
+          providing a transform that returns an empty bytes string is
+          equivilant to providing a ``skip_class`` function that
+          returns True.
+
+          Returning anything other than None or a bytes string is an
+          error and behavior is undefined.
         """
         if skip_class is not None:
             self.skip_class = skip_class
+        self.transform = transform
 
     def __call__(self, id, data):
         """Convert data from a ZODB data record to data used by newt.
@@ -451,14 +473,13 @@ class Jsonifier:
             ghost_pickle = data[:unpickler.pos]
             state = unpickler.load()
 
-            # xstate = xform(zoid, class_name, state)
-            # if xstate is not state:
-            #     state = xstate
-            #     if not isinstance(state, bytes):
-            #         state = json.dumps(state)
+            if self.transform is not None:
+                xstate = self.transform(class_name, state)
+                if xstate is not None:
+                    if xstate == b'':
+                        return NoneNoneNone
 
-            # Remove unicode surrogate strings, as postgres utf-8
-            # will reject them.
+                    state = xstate
 
             state = unicode_surrogates.sub(' ', state).replace('\\u0000', ' ')
         except Exception:
