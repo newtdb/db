@@ -414,19 +414,18 @@ class Jsonifier:
           A function that transforms a record's state JSON.
 
           If provided, it should accept a class name and a state
-          bytes string in JSON format.
+          string in JSON format.
 
-          If the transform function should return a new state bytes
-          string or None. If None is returned, the original state is
-          used.
+          If the transform function should return a new state string
+          or None. If None is returned, the original state is used.
 
-          If the function returns an empty bytes string, then the Jsonifier
+          If the function returns an empty string, then the Jsonifier
           will return ``(None, None, None)``. In other words,
-          providing a transform that returns an empty bytes string is
+          providing a transform that returns an empty string is
           equivilant to providing a ``skip_class`` function that
           returns True.
 
-          Returning anything other than None or a bytes string is an
+          Returning anything other than None or a string is an
           error and behavior is undefined.
         """
         if skip_class is not None:
@@ -476,7 +475,7 @@ class Jsonifier:
             if self.transform is not None:
                 xstate = self.transform(class_name, state)
                 if xstate is not None:
-                    if xstate == b'':
+                    if xstate == '':
                         return NoneNoneNone
 
                     state = xstate

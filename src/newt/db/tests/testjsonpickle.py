@@ -450,6 +450,6 @@ class JsonUnpicklerDBTests(unittest.TestCase):
         # A transform can return an empty string, signifying a skip/delete:
         def veto(class_name, state):
             if class_name.endswith('.P'):
-                return b''
+                return ''
 
         self.assertEqual(Jsonifier(transform=veto)('0', p), (None, None, None))
