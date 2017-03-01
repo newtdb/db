@@ -48,8 +48,8 @@ We can supply a transform function to the Python constructor using the
    >>> conn.root.x = 1
    >>> conn.transaction_manager.commit()
 
-   >>> conn.query_data("select state from newt order by zoid")
-   [({'x': 1},)]
+   >>> conn.query_data("select state from newt order by zoid") == [({'x': 1},)]
+   True
 
    >>> conn.close()
 
@@ -94,7 +94,7 @@ option to supply the dotted name of your transform function in the
    >>> conn.root.x = 2
    >>> conn.transaction_manager.commit()
 
-   >>> conn.query_data("select state from newt order by zoid")
-   [({'x': 2},)]
+   >>> conn.query_data("select state from newt order by zoid") == [({'x': 2},)]
+   True
 
    >>> db.close()
