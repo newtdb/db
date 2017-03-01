@@ -422,7 +422,7 @@ class Jsonifier:
           If the function returns an empty string, then the Jsonifier
           will return ``(None, None, None)``. In other words,
           providing a transform that returns an empty string is
-          equivilant to providing a ``skip_class`` function that
+          equivalent to providing a ``skip_class`` function that
           returns True.
 
           Returning anything other than None or a string is an
