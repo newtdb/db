@@ -108,7 +108,7 @@ def _split_options(
         large_record_size=large_record_size,
         ), storage_options
 
-def storage(dsn, keep_history=False, **kw):
+def storage(dsn, keep_history=False, transform=None, **kw):
     """Create a RelStorage storage using the newt PostgresQL adapter.
 
     Keyword options can be used to provide either `ZODB.DB
@@ -118,6 +118,7 @@ def storage(dsn, keep_history=False, **kw):
     options.
     """
     options = relstorage.options.Options(keep_history=keep_history, **kw)
+    options.transform = transform
     return relstorage.storage.RelStorage(Adapter(dsn, options), options=options)
 
 def DB(dsn, **kw):
