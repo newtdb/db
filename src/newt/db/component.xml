@@ -8,6 +8,25 @@
       datatype=".Adapter"
       >
     <section type="relstorage.adapter" name="*" attribute="adapter"/>
+
+    <key name="transform" datatype="dotted-name">
+      <description>
+        The dotted name of a function (or callable object) to
+        transform generated JSON data.  This provides a way to control
+        how your JSON data are generated and also provides a mechanism
+        for ignoring some objects.
+
+        The callable will be called with a class name and a state as a
+        bytes string in JSON format.  It must return:
+
+        - None to indicate that the original state should be used, or
+
+        - A new state JSON bytes string.  An empty string may be
+          returned to indicate that the record should be excluded from
+          the database.
+      </description>
+    </key>
+
   </sectiontype>
 
   <sectiontype

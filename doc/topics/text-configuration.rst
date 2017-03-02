@@ -10,11 +10,13 @@ database, especially if you need to provide non-default options.
 Configuration strings can be included in configuration files by
 themselves or as parts of larger configurations.
 
-Here's an example text configuration for Newt DB::
+Here's an example text configuration for Newt DB:
+
+.. code-block:: xml
 
   %import newt.db
 
-  <newtdb foo>
+  <newtdb>
     <zodb>
       <relstorage>
         keep-history false
@@ -52,6 +54,10 @@ newt
    Wraps a RelStorage ``postgresql`` element to provide a Newt
    Postgres database adapter that stores JSON data in addition to
    normal database data.
+
+   An optional ``transformation`` option may be provided to provide a
+   data-transformation function.  See the :doc:`Data transformation
+   topic <data-transformation>`.
 
 newtdb
    Wraps a ``zodb`` element to provide a Newt database rather than a
