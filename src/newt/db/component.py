@@ -4,10 +4,18 @@ import relstorage.adapters.postgresql
 class Adapter:
 
     def __init__(self, config):
+        self.transform = config.transform
         self.config = config.adapter.config
 
     def create(self, options):
         from ._adapter import Adapter
+        transform = self.transform
+        if transform is not None:
+            mod, func = transform.rsplit('.', 1)
+            mod = __import__(mod, {}, {}, ['*'])
+            transform = getattr(mod, func)
+            options.transform = transform
+
         return Adapter(dsn=self.config.dsn, options=options)
 
 class DB:

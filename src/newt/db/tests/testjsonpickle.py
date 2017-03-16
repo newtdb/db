@@ -15,6 +15,7 @@ from six.moves import copyreg
 import datetime
 import doctest
 import json
+import persistent
 from persistent.mapping import PersistentMapping
 import pickle
 from pprint import pprint
@@ -31,6 +32,11 @@ class C(object):
 
 class I:
     pass
+
+class P(persistent.Persistent):
+
+    def __init__(self, **kw):
+        self.__dict__.update(kw)
 
 class E190(object): pass
 class E60190(object): pass
@@ -434,3 +440,31 @@ class JsonUnpicklerDBTests(unittest.TestCase):
             ["Failed pickle load, oid: 'foo', pickle starts: 'badness'"])
 
         handler.uninstall()
+
+    def test_jsonifier_transform(self):
+        self.conn.root.x = P(test=1)
+        self.conn.transaction_manager.commit()
+
+        p, _ = self.conn._storage.load(self.conn.root.x._p_oid)
+
+        # baseline
+        from ..jsonpickle import Jsonifier
+        self.assertEqual(Jsonifier()('0', p)[2], '{"test": 1}')
+
+        # with transform:
+        def transform(class_name, state):
+            if class_name.endswith('.P'):
+                return '"Tests were here"'
+        self.assertEqual(Jsonifier(transform=transform)('0', p)[2],
+                         '"Tests were here"')
+
+        # None return have no effect:
+        self.assertEqual(Jsonifier(transform = lambda *a: None)('0', p)[2],
+                         '{"test": 1}')
+
+        # A transform can return an empty string, signifying a skip/delete:
+        def veto(class_name, state):
+            if class_name.endswith('.P'):
+                return ''
+
+        self.assertEqual(Jsonifier(transform=veto)('0', p), (None, None, None))

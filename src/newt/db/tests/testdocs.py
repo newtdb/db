@@ -41,6 +41,7 @@ def test_suite():
             p('topics', 'text-configuration'),
             p('topics', 'following'),
             p('topics', 'zodburi'),
+            p('topics', 'data-transformation'),
             setUp=setUp, tearDown=setupstack.tearDown,
             ),
         doctest.DocTestSuite('newt.db.jsonpickle'),
