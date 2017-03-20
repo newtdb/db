@@ -418,7 +418,7 @@ class JsonUnpicklerDBTests(unittest.TestCase):
                         ghost_pickle[-1:] == b'.' and
                         b'persistent.mapping' in ghost_pickle)
 
-        # custon skip_class
+        # custom skip_class
         jsonifier2 = Jsonifier(skip_class=lambda c: 1)
         self.assertEqual((None, None, None), jsonifier2('0', p))
 
@@ -440,6 +440,22 @@ class JsonUnpicklerDBTests(unittest.TestCase):
             ["Failed pickle load, oid: 'foo', pickle starts: 'badness'"])
 
         handler.uninstall()
+
+    def test_jsonifier_reducer(self):
+        from ..jsonpickle import Jsonifier
+        self.conn.root.x = MySpecialString('test')
+        self.conn.transaction_manager.commit()
+        p, tid = self.conn._storage.load(z64)
+
+        def reducer(name, data):
+            if name.endswith('MySpecialString'):
+                return data if isinstance(data, str) else data[0]
+
+        jsonifier = Jsonifier(reducer=reducer)
+        class_name, ghost_pickle, state = jsonifier('0', p)
+        self.assertEqual('persistent.mapping.PersistentMapping', class_name)
+        self.assertEqual('{"data": {"x": "test"}}', state)
+
 
     def test_jsonifier_transform(self):
         self.conn.root.x = P(test=1)
@@ -468,3 +484,6 @@ class JsonUnpicklerDBTests(unittest.TestCase):
                 return ''
 
         self.assertEqual(Jsonifier(transform=veto)('0', p), (None, None, None))
+
+class MySpecialString(str):
+    pass

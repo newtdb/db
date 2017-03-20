@@ -4,3 +4,4 @@ develop-eggs
 dist
 doc/_build
 eggs
+.DS_Store

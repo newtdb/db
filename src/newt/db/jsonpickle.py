@@ -497,7 +497,7 @@ class Jsonifier:
     skip_class = re.compile('BTrees[.]|ZODB.blob').match
     skip = object() # marker
 
-    def __init__(self, skip_class=None, transform=None):
+    def __init__(self, skip_class=None, transform=None, reducer=None):
         """Create a callable for converting database data to Newt JSON
 
         Parameters:
@@ -531,6 +531,7 @@ class Jsonifier:
         if skip_class is not None:
             self.skip_class = skip_class
         self.transform = transform
+        self.reducer = reducer
 
     def __call__(self, id, data):
         """Convert data from a ZODB data record to data used by newt.
@@ -553,7 +554,7 @@ class Jsonifier:
         """
         if not data:
             return NoneNoneNone
-        unpickler = JsonUnpickler(data)
+        unpickler = JsonUnpickler(data, self.reducer)
         try:
             klass = json.loads(unpickler.load())
 

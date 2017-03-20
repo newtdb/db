@@ -1,10 +1,18 @@
 Changes
 =======
 
-0.3.1 (unreleased)
+0.4.0 (unreleased)
 ==================
 
-- Nothing changed yet.
+- Added data-transformation options:
+
+  transformer
+    Callable to transform data records after they've been converted to
+    JSON.
+
+  reducer (advanced)
+    Callable called during JSON conversion to control how internal
+    (non-persistent) objects are converted to JSON.
 
 
 0.3.0 (2017-02-10)

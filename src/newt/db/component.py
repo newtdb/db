@@ -5,16 +5,18 @@ class Adapter:
 
     def __init__(self, config):
         self.transform = config.transform
+        self.reducer = config.reducer
         self.config = config.adapter.config
 
     def create(self, options):
         from ._adapter import Adapter
-        transform = self.transform
-        if transform is not None:
-            mod, func = transform.rsplit('.', 1)
-            mod = __import__(mod, {}, {}, ['*'])
-            transform = getattr(mod, func)
-            options.transform = transform
+        for name in 'transform', 'reducer':
+            f = getattr(self, name)
+            if f is not None:
+                mod, func = f.rsplit('.', 1)
+                mod = __import__(mod, {}, {}, ['*'])
+                f = getattr(mod, func)
+                setattr(options, name, f)
 
         return Adapter(dsn=self.config.dsn, options=options)
 

@@ -27,7 +27,9 @@ class Adapter(relstorage.adapters.postgresql.PostgreSQLAdapter):
         self.connmanager.set_on_store_opened(self.mover.on_store_opened)
 
         self.mover.jsonifier = Jsonifier(
-            transform=getattr(self.options, 'transform', None))
+            transform=getattr(self.options, 'transform', None),
+            reducer=getattr(self.options, 'reducer', None)
+            )
 
 class Mover(relstorage.adapters.postgresql.mover.PostgreSQLObjectMover):
 
