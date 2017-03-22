@@ -1,11 +1,22 @@
 Changes
 =======
 
-0.3.1 (unreleased)
+0.4.0 (unreleased)
 ==================
 
-- Nothing changed yet.
+- Serialization of persistent object references and intra-record
+  references (used only when there are cycles) was simplified and made
+  easier to use.
 
+  Note: The change to intra-object references is backward
+  incompatible, however, intra-record cycles, and thus the use of
+  intra-record references, are extremely rare and it isn't thought
+  that this change will affect anyone.  If this causes problems,
+  please `create an issue <https://github.com/newtdb/db/issues/new>`_.
+
+  The change to persistent references was made in a backward-compatible
+  way, but the backward compatibility support will be dropped in Newt
+  DB version 1.
 
 0.3.0 (2017-02-10)
 ==================
