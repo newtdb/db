@@ -41,7 +41,7 @@ class AdapterTests(DBSetup, unittest.TestCase):
         self.assertEqual(
             state,
             {'data': {'x': {'id': [1, 'newt.db._object.Object'],
-                            '::': 'persistent'}}})
+                            '::': 'persistent', '::=>': 1}}})
 
     def test_basic(self):
         import newt.db
