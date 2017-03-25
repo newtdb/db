@@ -24,6 +24,12 @@ Changes
   way, but the backward compatibility support will be dropped in Newt
   DB version 1.
 
+- Added a data-transformation option:
+
+  transformer
+    Callable to transform data records after they've been converted to
+    JSON.
+
 0.3.0 (2017-02-10)
 ==================
 
