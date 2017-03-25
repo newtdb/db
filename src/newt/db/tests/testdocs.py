@@ -5,6 +5,7 @@ import unittest
 import manuel.capture
 import manuel.doctest
 import manuel.testing
+from pprint import pprint
 from zope.testing import setupstack
 
 import newt
@@ -19,8 +20,9 @@ def setUp(test):
     dbsetup.setUp(False)
     setupstack.register(test, dbsetup.tearDown)
     test.globs.update(
-        dsn = dbsetup.dsn,
-        print_ = print,
+        dsn=dbsetup.dsn,
+        print_=print,
+        pprint=pprint,
         )
 
     setupstack.mock(test, 'newt.db.follow.updates', side_effect=finite_updates)
@@ -40,6 +42,7 @@ def test_suite():
             p('getting-started'),
             p('topics', 'text-configuration'),
             p('topics', 'following'),
+            p('topics', 'serialization'),
             p('topics', 'zodburi'),
             p('topics', 'data-transformation'),
             setUp=setUp, tearDown=setupstack.tearDown,

@@ -28,10 +28,12 @@ from ZODB.utils import z64, p64, maxtid
 from ..jsonpickle import JsonUnpickler, dumps
 
 class C(object):
-    pass
+    def __init__(self, **attrs):
+        self.__dict__.update(attrs)
 
 class I:
-    pass
+    def __init__(self, **attrs):
+        self.__dict__.update(attrs)
 
 class P(persistent.Persistent):
 
@@ -193,18 +195,17 @@ class JsonUnpicklerProtocol0Tests(unittest.TestCase):
         got = JsonUnpickler(pickle.dumps(data, self.proto)).load(sort_keys=True)
         self.assertEqual(
             got,
-            '{"::": "shared", "id": 0, "value":'
-            ' [1, 2, [3, {"::": "ref", "id": 0}]]}'
+            '{"::": "shared", "::id": 0, "value":'
+            ' [1, 2, [3, {"::->": 0}]]}'
             )
 
     def test_cyclic_object(self, cls=C):
         c = cls(); c.name = 'c'; c.c = c
         got = json.loads(JsonUnpickler(pickle.dumps(c, self.proto)).load())
-        self.assertEqual(got.pop('::id'), got['state']['c'].pop('id'))
+        self.assertEqual(got.pop('::id'), got['c'].pop('::->'))
         self.assertEqual(
             {"::": "newt.db.tests.testjsonpickle." + cls.__name__,
-             "state": {"c": {"::": "ref"},
-                       "name": "c"}},
+             "c": {}, "name": "c"},
             got)
 
     def test_cyclic_instance(self):
@@ -235,6 +236,15 @@ class JsonUnpicklerProtocol0Tests(unittest.TestCase):
             '[\n  2017,\n  2,\n  27\n]',
             dumps(datetime.date(2017, 2, 27), reducer, self.proto))
 
+    def test_non_empty_instance(self):
+        i = I(a=1)
+        self.assertEqual('{"::": "newt.db.tests.testjsonpickle.I", "a": 1}',
+                         dumps(i, indent=None))
+        i = C(a=1)
+        self.assertEqual('{"::": "newt.db.tests.testjsonpickle.C", "a": 1}',
+                         dumps(i, indent=None))
+
+
 class TZ(datetime.tzinfo):
     pass
 
@@ -248,8 +258,10 @@ class JsonUnpicklerProtocol1Tests(JsonUnpicklerProtocol0Tests):
         got = JsonUnpickler(f.getvalue()).load(sort_keys=True)
         self.assertEqual(
             got,
-            '[{"::": "persistent", "id": 18446744073709551615},'
-            ' {"::": "persistent", "id": 18446744073709551615}]')
+            '[{"::": "persistent", "::=>": 18446744073709551615,'
+            ' "id": 18446744073709551615},'
+            ' {"::": "persistent", "::=>": 18446744073709551615,'
+            ' "id": 18446744073709551615}]')
 
     def test_dt_with_tz(self):
         data = datetime.datetime(1, 2, 3, 4, 5, 6, 7, TZ())
@@ -359,7 +371,7 @@ class JsonUnpicklerDBTests(unittest.TestCase):
                u'date': u'2001-02-03T00:00:00',
                u'delta': {u'::': u'datetime.timedelta',
                           u'::()': [1, 2, 3]},
-               u'first': {u'::': u'persistent',
+               u'first': {u'::': u'persistent', u'::=>': 1,
                           u'id': [1, u'persistent.mapping.PersistentMapping']},
                u'list': [1, 2, 3, u'root',
                          [0, 123456789, 1180591620717411303424, 1234.56789]],
