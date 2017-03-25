@@ -10,6 +10,7 @@ Newt DB Topics
    admin
    schemas
    for-zodb-users
+   serialization
    data-transformation
    updater
    following

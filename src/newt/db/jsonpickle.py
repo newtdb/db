@@ -42,15 +42,17 @@ class Persistent(object):
     def __init__(self, id):
         if isinstance(id, bytes_types):
             id = u64(id)
+            self.zoid = id
         else:
             assert (len(id) == 2 and
                     isinstance(id[0], bytes_types) and
                     isinstance(id[1], Global))
             id = u64(id[0]), id[1].name
+            self.zoid = id[0]
         self.id = id
 
     def json_reduce(self):
-        return {'::': 'persistent', 'id': self.id}
+        return {'::': 'persistent', 'id': self.id, '::=>': self.zoid}
 
 class Global(object):
 
@@ -74,6 +76,12 @@ class Instance(object):
 
     def json_reduce(self):
         state = self.state
+
+        if isinstance(state, Put) and (
+            not state.got or not not self.unpickler.cyclic
+            ):
+            state = state.v
+
         if not isinstance(state, dict):
             state = dict(state=state) if state else {}
 
@@ -94,7 +102,7 @@ class Get(object):
 
     def json_reduce(self):
         if self.unpickler.cyclic:
-            return {'::': 'ref', 'id': self.id}
+            return {'::->': self.id}
         else:
             return self.v
 
@@ -126,8 +134,11 @@ class Put(Get):
         if self.got and self.unpickler.cyclic:
             if isinstance(v, Instance):
                 v.id = self.id
+            elif isinstance(v, dict):
+                v = v.copy()
+                v['::id'] = self.id
             else:
-                v = {'::': 'shared', 'id': self.id, 'value': v}
+                v = {'::': 'shared', '::id': self.id, 'value': v}
         return v
 
 def dt_bytes(v):
@@ -174,8 +185,8 @@ def instance(global_, args):
 
     return Instance(name, args)
 
-basic_types = (float, int, type(1<<99), type(b''), type(u''),
-               tuple, Global, Bytes, frozenset)
+basic_types = (float, int, type(1<<99), type(b''), type(u''), Global, Bytes,
+               tuple)
 
 def default(ob):
     try:
@@ -391,6 +402,31 @@ class JsonUnpickler:
 
 unicode_surrogates = re.compile(r'\\ud[89a-f][0-9a-f]{2,2}', flags=re.I)
 NoneNoneNone = None, None, None
+
+def dumps(data, proto=3 if PY3 else 1, indent=2):
+    """Dump an object to JSON using pickle and JsonUnpickler
+
+    This is useful for seeing how objects will be pickled, especially
+    when creating custon reducers.
+
+    Usage::
+
+        >>> dumps(42)
+        '42'
+
+    Note that the JSON produced is a little prettier than the default
+    JSON because keys are sorted and indentation is used::
+
+        >>> print(dumps(dict(a=1, b=2)))
+        {
+          "a": 1,
+          "b": 2
+        }
+
+    """
+    import pickle
+    return JsonUnpickler(pickle.dumps(data, proto)).load(
+        sort_keys=True, indent=indent).replace(' \n', '\n')
 
 class Jsonifier:
 
