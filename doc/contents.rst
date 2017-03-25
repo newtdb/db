@@ -17,7 +17,6 @@ Contents:
    fine-print
    topics/index
    reference
-   roadmap
    community
 
 Indices and tables

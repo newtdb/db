@@ -27,5 +27,3 @@ Learn more:
 - :doc:`Topics <topics/index>`
 
 - :doc:`Reference <reference>`
-
-- :doc:`Roadmap <roadmap>`
