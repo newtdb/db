@@ -1,7 +1,7 @@
 Changes
 =======
 
-0.4.0 (unreleased)
+0.4.0 (2017-03-25)
 ==================
 
 - Serialization of persistent object references and intra-record
