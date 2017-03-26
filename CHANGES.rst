@@ -1,10 +1,12 @@
 Changes
 =======
 
-0.4.1 (unreleased)
+0.5.0 (unreleased)
 ==================
 
-- Nothing changed yet.
+- The helpers for setting up full-text search indexes now accept a
+  config argument to specify the name of a PostgreSQL full-text search
+  configuration.
 
 
 0.4.0 (2017-03-25)

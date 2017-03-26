@@ -34,8 +34,9 @@ class Connection:
         return _search.search_batch(self, query, args, batch_start, batch_size)
     search_batch.__doc__ = _search.search_batch.__doc__
 
-    def create_text_index(self, fname, D=None, C=None, B=None, A=None):
-        return _search.create_text_index(self, fname, D, C, B, A)
+    def create_text_index(self, fname, D=None, C=None, B=None, A=None,
+                          config=None):
+        return _search.create_text_index(self, fname, D, C, B, A, config)
     create_text_index.__doc__ = _search.create_text_index.__doc__
 
     def create_text_index_sql(fname, D=None, C=None, B=None, A=None):
