@@ -8,6 +8,18 @@ Changes
   config argument to specify the name of a PostgreSQL full-text search
   configuration.
 
+- The batch search methods (``search_batch``, and ``where_batch``) now
+  allow the arguments parameter to be omitted, which is useful when
+  substitutions have been be applied with a `cursor mogrify method
+  <http://initd.org/psycopg/docs/cursor.html#cursor.mogrify>`_ before
+  calling them.
+
+- The search methods (``search``, ``search_batch``, ``where`` and
+  ``where_batch``) now accept binary queries.  This is allow
+  substitutions to be applied with a `cursor mogrify method
+  <http://initd.org/psycopg/docs/cursor.html#cursor.mogrify>`_ before
+  calling them.
+
 
 0.4.0 (2017-03-25)
 ==================

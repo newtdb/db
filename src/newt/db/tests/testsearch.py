@@ -55,6 +55,10 @@ class SearchTests(DBSetup, unittest.TestCase):
                             a='2', b='5')
         self.assertEqual([2, 3, 4, 5], sorted(o.i for o in obs2))
 
+        # Test allready-mogrified data:
+        obs2 = search.where(self.conn,
+                            b"state->>'i' >= '2' and state->>'i' <= '5'")
+        self.assertEqual([2, 3, 4, 5], sorted(o.i for o in obs2))
 
     def test_search_batch(self):
         for i in range(99):
@@ -69,7 +73,6 @@ class SearchTests(DBSetup, unittest.TestCase):
         """
         total, batch = conn2.search_batch(sql, dict(a=2, b=90), 10, 20)
         self.assertEqual(total, 89)
-
         self.assertEqual(list(range(12, 32)), [o.i for o in batch])
 
         # We didn't end up with all of the objects getting loaded:
@@ -80,6 +83,20 @@ class SearchTests(DBSetup, unittest.TestCase):
         totalbatch = search.search_batch(
             conn2, sql, dict(a=2, b=90), 10, 20)
         self.assertEqual((total, batch), totalbatch)
+
+        # where_batch:
+        total, batch = conn2.where_batch(
+            "(state->>'i')::int >= %(a)s and (state->>'i')::int <= %(b)s"
+            " order by zoid", dict(a=2, b=90), 10, 20)
+        self.assertEqual(total, 89)
+        self.assertEqual(list(range(12, 32)), [o.i for o in batch])
+
+        # where_batch binary/pre-mogrified:
+        total, batch = conn2.where_batch(
+            b"(state->>'i')::int >= 2 and (state->>'i')::int <= 90"
+            b" order by zoid", 10, 20)
+        self.assertEqual(total, 89)
+        self.assertEqual(list(range(12, 32)), [o.i for o in batch])
 
     def test_create_text_index_sql(self):
         from .. import search

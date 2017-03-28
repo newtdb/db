@@ -35,13 +35,16 @@ def search(conn, query, *args, **kw):
     get = conn.ex_get
     cursor = conn._storage.ex_cursor()
     try:
-        cursor.execute("select zoid, ghost_pickle from (%s)_" % query,
+        cursor.execute((b"select zoid, ghost_pickle from (%s)_"
+                        if isinstance(query, bytes) else
+                        "select zoid, ghost_pickle from (%s)_"
+                        ) % query,
                        args or kw)
         return [get(p64(zoid), ghost_pickle) for (zoid, ghost_pickle) in cursor]
     finally:
         _try_to_close_cursor(cursor)
 
-def search_batch(conn, query, args, batch_start, batch_size):
+def search_batch(conn, query, args, batch_start, batch_size=None):
     """Query for a batch of newt objects.
 
     Query parameters are provided using the ``args``
@@ -56,12 +59,34 @@ def search_batch(conn, query, args, batch_start, batch_size):
 
     The total result count and sequence of batch result objects
     are returned.
+
+    The query parameters, ``args``, may be omitted. (In this case,
+    ``batch_size`` will be None and the other arguments will be
+    re-arranged appropriately. ``batch_size`` *is required*.)  You
+    might use this feature if you pre-inserted data using a database
+    cursor `mogrify
+    <http://initd.org/psycopg/docs/cursor.html#cursor.mogrify>`_
+    method.
     """
-    query = """
-    select zoid, ghost_pickle, count(*) over()
-    from (%s) _
-    offset %s limit %s
-    """ % (query, batch_start, batch_size)
+    if not batch_size:
+        if isinstance(args, int):
+            batch_size = batch_start
+            batch_start = args
+            args = ()
+        else:
+            raise AssertionError("Invalid batch size %r" % batch_size)
+
+    query = (
+        b"""select zoid, ghost_pickle, count(*) over()
+        from (%s) _
+        offset %d limit %d
+        """
+        if isinstance(query, bytes) else
+        """select zoid, ghost_pickle, count(*) over()
+        from (%s) _
+        offset %d limit %d
+        """
+        ) % (query, batch_start, batch_size)
     get = conn.ex_get
     cursor = conn._storage.ex_cursor()
     try:
@@ -240,10 +265,14 @@ def where(conn, query_tail, *args, **kw):
     A sequence of newt objects is returned.
     """
     return search(conn,
-                  "select * from newt where " + query_tail,
+                  (b"select * from newt where "
+                   if isinstance(query_tail, bytes) else
+                   "select * from newt where "
+                   ) +
+                  query_tail,
                   *args, **kw)
 
-def where_batch(conn, query_tail, args, batch_start, batch_size):
+def where_batch(conn, query_tail, args, batch_start, batch_size=None):
     """Query for batch of objects satisfying criteria
 
     Like the ``where`` method, this is a convenience wrapper for
@@ -261,7 +290,19 @@ def where_batch(conn, query_tail, args, batch_start, batch_size):
 
     The total result count and sequence of batch result objects
     are returned.
+
+    The query parameters, ``args``, may be omitted. (In this case,
+    ``batch_size`` will be None and the other arguments will be
+    re-arranged appropriately. ``batch_size`` *is required*.)  You
+    might use this feature if you pre-inserted data using a database
+    cursor `mogrify
+    <http://initd.org/psycopg/docs/cursor.html#cursor.mogrify>`_
+    method.
     """
+
     return search_batch(conn,
-                        "select * from newt where " + query_tail,
+                        (b"select * from newt where "
+                         if isinstance(query_tail, bytes) else
+                         "select * from newt where ")
+                        + query_tail,
                         args, batch_start, batch_size)
