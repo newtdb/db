@@ -88,7 +88,7 @@ end
 $$ language plpgsql immutable;
 """
 
-def _texts(texts, exprs, weight=None):
+def _texts(texts, exprs, weight=None, config=None):
     if not exprs:
         return
 
@@ -109,7 +109,11 @@ def _texts(texts, exprs, weight=None):
             text = "text || " + text
         texts.append("  text = %s;" % text)
 
-    tsvector = 'to_tsvector(text)'
+    if config:
+        tsvector = 'to_tsvector(%r, text)' % config
+    else:
+        tsvector = 'to_tsvector(text)'
+
     if weight:
         tsvector = "setweight(%s, '%s')" % (tsvector, weight)
 
@@ -120,7 +124,7 @@ def _texts(texts, exprs, weight=None):
 
 
 identifier = re.compile(r'\w+$').match
-def create_text_index_sql(fname, D=None, C=None, B=None, A=None):
+def create_text_index_sql(fname, D=None, C=None, B=None, A=None, config=None):
     """Compute and return SQL to set up a newt text index.
 
     The resulting SQL contains a statement to create a
@@ -139,12 +143,18 @@ def create_text_index_sql(fname, D=None, C=None, B=None, A=None):
     supply expressions and/or names for text to be extracted with
     different weights for ranking.  See:
     https://www.postgresql.org/docs/current/static/textsearch-controls.html#TEXTSEARCH-RANKING
+
+    The ``config`` argument may be used to specify which `text search
+    configuration
+    <https://www.postgresql.org/docs/current/static/textsearch-intro.html#TEXTSEARCH-INTRO-CONFIGURATIONS>`_
+    to use. If not specified, the server-configured default
+    configuration is used.
     """
     texts = []
-    _texts(texts, D)
-    _texts(texts, C, 'C')
-    _texts(texts, B, 'B')
-    _texts(texts, A, 'A')
+    _texts(texts, D, config=config)
+    _texts(texts, C, 'C', config=config)
+    _texts(texts, B, 'B', config=config)
+    _texts(texts, A, 'A', config=config)
 
     if not texts:
         raise TypeError("No text expressions were specified")
@@ -155,7 +165,7 @@ def create_text_index_sql(fname, D=None, C=None, B=None, A=None):
                  % (fname, fname))
     return '\n'.join(texts)
 
-def create_text_index(conn, fname, D, C=None, B=None, A=None):
+def create_text_index(conn, fname, D, C=None, B=None, A=None, config=None):
     """Set up a newt full-text index.
 
     The ``create_text_index_sql`` method is used to compute SQL, which
@@ -167,7 +177,7 @@ def create_text_index(conn, fname, D, C=None, B=None, A=None):
     is independent of the current transaction.
     """
     conn, cursor = conn._storage.ex_connect()
-    sql = create_text_index_sql(fname, D, C, B, A)
+    sql = create_text_index_sql(fname, D, C, B, A, config)
     try:
         cursor.execute(sql)
         conn.commit()

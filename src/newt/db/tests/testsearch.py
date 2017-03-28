@@ -1,7 +1,6 @@
 from ZODB.utils import u64
 import unittest
 
-
 from .. import Object
 from .base import DBSetup
 
@@ -103,6 +102,12 @@ class SearchTests(DBSetup, unittest.TestCase):
             )
 
         self.assertEqual(
+            expect_text_klingon,
+            search.create_text_index_sql('mytext', ['text', 'title'],
+                                         config='klingon'),
+            )
+
+        self.assertEqual(
             expect_weighted_text,
             self.conn.create_text_index_sql(
                 'mytext', 'text', ['title', 'description']),
@@ -143,6 +148,14 @@ class SearchTests(DBSetup, unittest.TestCase):
 
         self.assertRaises(TypeError, self.conn.create_text_index_sql, 'mytext')
         self.assertRaises(TypeError, search.create_text_index_sql, 'mytext')
+
+    def test_create_text_index_arg_passthrough(self):
+        import mock
+        with mock.patch("newt.db.search.create_text_index_sql") as f:
+            f.return_value = 'select'
+            self.conn.create_text_index('txt', 'text', 'C', 'B', 'A',
+                                        config='Klingon')
+            f.assert_called_with('txt', 'text', 'C', 'B', 'A', 'Klingon')
 
     def test_create_text_index(self):
         self.conn.create_text_index('txt', 'text')
@@ -232,6 +245,25 @@ begin
   text = coalesce(state ->> 'text', '');
   text = text || coalesce(state ->> 'title', '');
   result := to_tsvector(text);
+
+  return result;
+end
+$$ language plpgsql immutable;
+
+create index newt_mytext_idx on newt using gin (mytext(state));
+"""
+
+expect_text_klingon = """\
+create or replace function mytext(state jsonb) returns tsvector as $$
+declare
+  text text;
+  result tsvector;
+begin
+  if state is null then return null; end if;
+
+  text = coalesce(state ->> 'text', '');
+  text = text || coalesce(state ->> 'title', '');
+  result := to_tsvector('klingon', text);
 
   return result;
 end
