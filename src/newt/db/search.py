@@ -33,7 +33,7 @@ def search(conn, query, *args, **kw):
                             " not both")
         args = kw
     get = conn.ex_get
-    cursor = conn._storage.ex_cursor()
+    cursor = conn.read_only_cursor()
     try:
         cursor.execute((b"select zoid, ghost_pickle from (%s)_"
                         if isinstance(query, bytes) else
@@ -88,7 +88,7 @@ def search_batch(conn, query, args, batch_start, batch_size=None):
         """
         ) % (query, batch_start, batch_size)
     get = conn.ex_get
-    cursor = conn._storage.ex_cursor()
+    cursor = conn.read_only_cursor()
     try:
         cursor.execute(query, args)
         count = 0

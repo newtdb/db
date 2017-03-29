@@ -17,7 +17,7 @@ newt.db module-level functions
 
 .. autoclass:: newt.db.Connection
    :members: where, search, where_batch, search_batch, query_data,
-             create_text_index_sql, create_text_index
+             create_text_index_sql, create_text_index, read_only_cursor
 
    .. method:: abort()
 
