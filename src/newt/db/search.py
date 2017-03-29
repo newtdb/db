@@ -35,10 +35,9 @@ def search(conn, query, *args, **kw):
     get = conn.ex_get
     cursor = read_only_cursor(conn)
     try:
-        cursor.execute((b"select zoid, ghost_pickle from (%s)_"
-                        if isinstance(query, bytes) else
-                        "select zoid, ghost_pickle from (%s)_"
-                        ) % query,
+        cursor.execute(b"select zoid, ghost_pickle from (" + query + b")_"
+                       if isinstance(query, bytes) else
+                       "select zoid, ghost_pickle from (" + query + ")_",
                        args or kw)
         return [get(p64(zoid), ghost_pickle) for (zoid, ghost_pickle) in cursor]
     finally:
@@ -76,17 +75,20 @@ def search_batch(conn, query, args, batch_start, batch_size=None):
         else:
             raise AssertionError("Invalid batch size %r" % batch_size)
 
-    query = (
-        b"""select zoid, ghost_pickle, count(*) over()
+    if isinstance(query, str):
+        query = """select zoid, ghost_pickle, count(*) over()
         from (%s) _
         offset %d limit %d
-        """
-        if isinstance(query, bytes) else
-        """select zoid, ghost_pickle, count(*) over()
-        from (%s) _
-        offset %d limit %d
-        """
-        ) % (query, batch_start, batch_size)
+        """ % (query, batch_start, batch_size)
+    else:
+        # Python 3.4, whimper
+        query = (
+            b"select zoid, ghost_pickle, count(*) over()\nfrom (" +
+            query +
+            (") _\noffset %s limit %d" % (batch_start, batch_size)
+             ).encode('ascii')
+            )
+
     get = conn.ex_get
     cursor = read_only_cursor(conn)
     try:
