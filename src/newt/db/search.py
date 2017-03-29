@@ -33,7 +33,7 @@ def search(conn, query, *args, **kw):
                             " not both")
         args = kw
     get = conn.ex_get
-    cursor = conn.read_only_cursor()
+    cursor = read_only_cursor(conn)
     try:
         cursor.execute((b"select zoid, ghost_pickle from (%s)_"
                         if isinstance(query, bytes) else
@@ -88,7 +88,7 @@ def search_batch(conn, query, args, batch_start, batch_size=None):
         """
         ) % (query, batch_start, batch_size)
     get = conn.ex_get
-    cursor = conn.read_only_cursor()
+    cursor = read_only_cursor(conn)
     try:
         cursor.execute(query, args)
         count = 0
@@ -306,3 +306,17 @@ def where_batch(conn, query_tail, args, batch_start, batch_size=None):
                          "select * from newt where ")
                         + query_tail,
                         args, batch_start, batch_size)
+
+
+def read_only_cursor(conn):
+    """Get a database cursor for reading.
+
+    The returned `cursor
+    <http://initd.org/psycopg/docs/cursor.html>`_ can be used to
+    make PostgreSQL queries and to perform safe SQL generation
+    using the `cursor's mogrify method
+    <http://initd.org/psycopg/docs/cursor.html#cursor.mogrify>`_.
+
+    The caller must close the returned cursor after use.
+    """
+    return conn._storage.ex_cursor()

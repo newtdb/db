@@ -79,19 +79,6 @@ class Connection:
         else:
             self._connection.commit(ignore)
 
-    def read_only_cursor(self):
-        """Get a database cursor for reading.
-
-        The returned `cursor
-        <http://initd.org/psycopg/docs/cursor.html>`_ can be used to
-        make PostgreSQL queries and to perform safe SQL generation
-        using the `cursor's mogrify method
-        <http://initd.org/psycopg/docs/cursor.html#cursor.mogrify>`_.
-
-        The caller must close the returned cursor after use.
-        """
-        return self._storage.ex_cursor()
-
 def _split_options(
     # DB options
     pool_size=7,
