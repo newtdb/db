@@ -1,7 +1,7 @@
 Changes
 =======
 
-0.5.0 (unreleased)
+0.5.0 (2017-03-30)
 ==================
 
 - The ``newt.db.search`` module has a new ``read_only_cursor``
