@@ -1,7 +1,7 @@
 Changes
 =======
 
-0.5.1 (unreleased)
+0.5.1 (2017-03-30)
 ==================
 
 - Fixed: When arguments are omitted, there were errors because
