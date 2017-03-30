@@ -4,7 +4,11 @@ Changes
 0.5.1 (unreleased)
 ==================
 
-- Nothing changed yet.
+- Fixed: When arguments are omitted, there were errors because
+  psycopg2 was trying to do substitutions anyway and choking on ``%``
+  characters in ``like`` queries.
+
+- Fixed: Connection.search_batch didn't allow arguments to be omitted.
 
 
 0.5.0 (2017-03-30)
