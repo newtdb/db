@@ -52,7 +52,7 @@ class Connection:
         return _search.where(self, query_tail, *args, **kw)
     where.__doc__ = _search.where.__doc__
 
-    def where_batch(self, query_tail, args, batch_start, batch_size):
+    def where_batch(self, query_tail, args, batch_start, batch_size=None):
         return _search.where_batch(
             self, query_tail, args, batch_start, batch_size)
     where_batch.__doc__ = _search.where_batch.__doc__
