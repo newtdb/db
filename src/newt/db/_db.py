@@ -30,7 +30,7 @@ class Connection:
         return _search.search(self, query, *args, **kw)
     search.__doc__ = _search.search.__doc__
 
-    def search_batch(self, query, args, batch_start, batch_size):
+    def search_batch(self, query, args, batch_start, batch_size=None):
         return _search.search_batch(self, query, args, batch_start, batch_size)
     search_batch.__doc__ = _search.search_batch.__doc__
 

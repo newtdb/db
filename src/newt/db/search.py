@@ -38,7 +38,7 @@ def search(conn, query, *args, **kw):
         cursor.execute(b"select zoid, ghost_pickle from (" + query + b")_"
                        if isinstance(query, bytes) else
                        "select zoid, ghost_pickle from (" + query + ")_",
-                       args or kw)
+                       args or None)
         return [get(p64(zoid), ghost_pickle) for (zoid, ghost_pickle) in cursor]
     finally:
         _try_to_close_cursor(cursor)
@@ -71,7 +71,7 @@ def search_batch(conn, query, args, batch_start, batch_size=None):
         if isinstance(args, int):
             batch_size = batch_start
             batch_start = args
-            args = ()
+            args = None
         else:
             raise AssertionError("Invalid batch size %r" % batch_size)
 
@@ -92,7 +92,7 @@ def search_batch(conn, query, args, batch_start, batch_size=None):
     get = conn.ex_get
     cursor = read_only_cursor(conn)
     try:
-        cursor.execute(query, args)
+        cursor.execute(query, args or None)
         count = 0
         result = []
         for zoid, ghost_pickle, count in cursor:

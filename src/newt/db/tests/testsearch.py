@@ -98,6 +98,15 @@ class SearchTests(DBSetup, unittest.TestCase):
         self.assertEqual(total, 89)
         self.assertEqual(list(range(12, 32)), [o.i for o in batch])
 
+    def test_search_no_args_no_problem_w_percent(self):
+        self.assertEqual(
+            [],
+            list(self.conn.search("select * from newt where 'x' like 'y%'")))
+        self.assertEqual(
+            (0, []),
+            self.conn.search_batch(
+                "select * from newt where 'x' like 'y%'", 1, 10))
+
     def test_create_text_index_sql(self):
         from .. import search
         self.assertEqual(
