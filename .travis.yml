@@ -4,16 +4,24 @@ services:
   - postgresql
 addons:
   postgresql: "9.4"
+
 python:
   - pypy-5.4.1
   - 3.6
   - 2.7
   - 3.5
   - 3.4
+env:
+  - RELSTORAGE=
+  - RELSTORAGE=' >=2.1a1'
+
 install:
   - pip install -U pip setuptools zc.buildout
-  - buildout parts=test
+  - buildout parts=test "versions:RelStorage=$RELSTORAGE"
+  - grep RelStorage bin/test
+
 script: bin/test -v1j99
+
 cache:
   directories:
     - $HOME/.cache/pip

@@ -32,9 +32,15 @@ class Adapter(relstorage.adapters.postgresql.PostgreSQLAdapter):
 class Mover(relstorage.adapters.postgresql.mover.PostgreSQLObjectMover):
 
     def on_store_opened(self, cursor, restart=False):
-        super(Mover, self).on_store_opened(cursor, restart)
+        cursor.execute("""\
+        select from information_schema.tables
+        where table_name = 'temp_store' and table_type = 'LOCAL TEMPORARY'
+        """)
+        if not list(cursor):
+            super(Mover, self).on_store_opened(cursor, restart)
+
         cursor.execute("""
-            CREATE TEMPORARY TABLE temp_store_json (
+            CREATE TEMPORARY TABLE IF NOT EXISTS temp_store_json (
                 zoid         BIGINT NOT NULL,
                 class_name   TEXT,
                 ghost_pickle BYTEA,
