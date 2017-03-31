@@ -1,3 +1,4 @@
+====================
 Data transformation
 ====================
 
@@ -97,4 +98,49 @@ option to supply the dotted name of your transform function in the
    >>> conn.query_data("select state from newt order by zoid") == [({'x': 2},)]
    True
 
+   >>> db.close()
+
+Low-level transformation: reducers
+==================================
+
+Transforms operate at the record level, after a database record's
+contents have been converted to JSON. There's also an **advanced** hook to
+supply limited transformation during the process of converting to JSON.
+
+See :py:class:`~newt.db.jsonpickle.JsonUnpickler` for details.
+
+You can supply the dotted name of a reducer in your configuration:
+
+.. code-block:: xml
+
+  %import newt.db
+
+  <newtdb>
+    <zodb>
+      <relstorage>
+        keep-history false
+        <newt>
+          transform myproject.flatten_persistent_mapping
+          reducer myproject.fancypants_reducer
+          <postgresql>
+            dsn dbname=''
+          </postgresql>
+        </newt>
+      </relstorage>
+    </zodb>
+  </newtdb>
+
+.. -> src
+
+   >>> from newt.db.tests import testdocs
+   >>> testdocs.flatten_persistent_mapping = flatten_persistent_mapping
+   >>> testdocs.fancypants_reducer = lambda *args: None
+   >>> src = src.replace('myproject', 'newt.db.tests.testdocs')
+
+   >>> src = src.replace("''", dsn.rsplit('/')[-1])
+   >>> from ZODB.config import databaseFromString
+   >>> db = databaseFromString(src)
+   >>> (db.storage._adapter.mover.jsonifier.reducer is
+   ...  testdocs.fancypants_reducer)
+   True
    >>> db.close()

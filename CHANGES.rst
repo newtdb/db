@@ -4,7 +4,11 @@ Changes
 0.5.2 (unreleased)
 ==================
 
-- Nothing changed yet.
+- Added another data-transformation option:
+
+  reducer (advanced)
+    Callable called during JSON conversion to control how internal
+    (non-persistent) objects are converted to JSON.
 
 
 0.5.1 (2017-03-30)

@@ -27,6 +27,15 @@
       </description>
     </key>
 
+    <key name="reducer" datatype="dotted-name">
+      <description>
+        The dotted name of new.db.jsonpickle.JsonUnpickler reducer.
+
+        This is an advanced feature. See the docstring of that class
+        for details.
+      </description>
+    </key>
+
   </sectiontype>
 
   <sectiontype
