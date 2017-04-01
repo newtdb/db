@@ -2,13 +2,13 @@ Changes
 =======
 
 0.5.2 (unreleased)
-==================
+------------------
 
 - Fixed: Newt DB didn't work with RelStorage 2.1.
 
 
 0.5.1 (2017-03-30)
-==================
+------------------
 
 - Fixed: When arguments are omitted, there were errors because
   psycopg2 was trying to do substitutions anyway and choking on ``%``
@@ -18,7 +18,7 @@ Changes
 
 
 0.5.0 (2017-03-30)
-==================
+------------------
 
 - The ``newt.db.search`` module has a new ``read_only_cursor``
   function for obtaining a `database cursor
@@ -44,7 +44,7 @@ Changes
 
 
 0.4.0 (2017-03-25)
-==================
+------------------
 
 - Serialization of persistent object references and intra-record
   references (used only when there are cycles) was simplified and made
@@ -67,7 +67,7 @@ Changes
     JSON.
 
 0.3.0 (2017-02-10)
-==================
+------------------
 
 - Added an API for following database changes.
 
@@ -84,26 +84,26 @@ Changes
   use zodburi.
 
 0.2.2 (2017-02-08)
-==================
+------------------
 
 - Fixed a packaging bug.
 
 
 0.2.1 (2017-02-06)
-==================
+------------------
 
 - Fixed: Packing wasn't handled correctly. Objects removed during
   packing weren't removed from the ``newt`` table.
 
 0.2.0 (2017-01-30)
-==================
+------------------
 
 - Added PyPy support
 
 - Fixed: ``datetime`` values with time zones weren't handled correctly.
 
 0.1.2 (2017-01-26)
-==================
+------------------
 
 - Fixed a number of documentation errors.
 
@@ -113,11 +113,11 @@ Changes
 - Added some missing names to ``newt.db``.
 
 0.1.1 (2017-01-24)
-==================
+------------------
 
 Fixed a small Python 2 bug that prevented import.
 
 0.1.0 (2017-01-24)
-==================
+------------------
 
 Initial release
