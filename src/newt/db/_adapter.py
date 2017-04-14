@@ -148,7 +148,7 @@ class SchemaInstaller(
 
     def update_schema(self, cursor, tables):
         if 'newt' not in tables:
-            self._create_newt(cursor)
+            create_newt(cursor)
         if not trigger_exists(cursor, DELETE_TRIGGER):
             _create_newt_delete_trigger(cursor, self.keep_history)
 
