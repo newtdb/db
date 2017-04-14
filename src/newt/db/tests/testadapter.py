@@ -123,6 +123,28 @@ class AdapterTests(DBSetup, unittest.TestCase):
         """)
         self.assertEqual([], list(cursor))
 
+    def test_newt_on_existing_db(self):
+        import ZODB.config
+        import newt.db
+        db = ZODB.config.databaseFromString("""\
+        %%import relstorage
+        <zodb>
+          <relstorage>
+            keep-history false
+            <postgresql>
+              dsn %s
+            </postgresql>
+          </relstorage>
+        </zodb>
+        """ % self.dsn)
+        with db.transaction() as conn:
+            conn.root.x = Object(a=1)
+        db.close()
+
+        conn = newt.db.connection(self.dsn)
+        self.assertEqual(conn.root.x.a, 1)
+        conn.close()
+
 class HPAdapterTests(AdapterTests):
 
     layer = MininalTestLayer('HPAdapterTests')
