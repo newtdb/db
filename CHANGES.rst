@@ -6,6 +6,16 @@ Changes
 
 - Fixed: Newt DB couldn't be added to an existing RelStorage database.
 
+- Fixed: when using the updater ``--redo`` option, the
+  ``newt_follow_progress`` table was updated.
+
+- Fixed: when using the updater ``--redo`` option, the
+  ``newt_follow_progress`` was created if it didn't exist.  This was a
+  problem if ``--redo`` was only being used to populate a database to
+  which newt was added.
+
+
+
 0.5.2 (2017-04-01)
 ------------------
 
