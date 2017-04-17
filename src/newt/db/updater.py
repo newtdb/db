@@ -92,7 +92,7 @@ error. For example, 1,99 indicates OK if 1 or less, WARNING if more
 than 1 and less than or equal to 99 and ERROR of more than 99 seconds.
 """)
 
-def _update_newt(conn, cursor, jsonifier, Binary, batch):
+def _update_newt(conn, cursor, jsonifier, Binary, batch, redo):
     ex = cursor.execute
     mogrify = cursor.mogrify
 
@@ -122,7 +122,7 @@ def _update_newt(conn, cursor, jsonifier, Binary, batch):
                          for d in to_save)
                )
 
-    if tid is not None:
+    if tid is not None and not redo:
         follow.set_progress_tid(conn, __name__, tid)
 
     conn.commit()
@@ -184,23 +184,30 @@ def main(args=None):
                         print("OK | %s" % flag())
                         return 0
 
-            tid = follow.get_progress_tid(conn, __name__)
-            if tid < 0 and not table_exists(cursor, 'newt'):
-                from ._adapter import _newt_ddl
-                cursor.execute(_newt_ddl)
-            elif trigger_exists(cursor, DELETE_TRIGGER):
-                if options.remove_delete_trigger:
-                    cursor.execute("drop trigger %s on object_state" %
-                                   DELETE_TRIGGER)
-                else:
-                    logger.error(
-                        "The Newt DB delete trigger exists.\n"
-                        "It is incompatible with the updater.\n"
-                        "Use -T to remove it.")
-                    return 1
+            redo = options.redo
+            if redo and not table_exists(cursor, follow.PROGRESS_TABLE):
+                if not table_exists(cursor, 'newt'):
+                    raise AssertionError("newt table doesn't exist")
+                cursor.execute("select max(tid) from object_state")
+                [[tid]] = cursor
+            else:
+                tid = follow.get_progress_tid(conn, __name__)
+                if tid < 0 and not table_exists(cursor, 'newt'):
+                    from ._adapter import _newt_ddl
+                    cursor.execute(_newt_ddl)
+                elif trigger_exists(cursor, DELETE_TRIGGER):
+                    if options.remove_delete_trigger:
+                        cursor.execute("drop trigger %s on object_state" %
+                                       DELETE_TRIGGER)
+                    else:
+                        logger.error(
+                            "The Newt DB delete trigger exists.\n"
+                            "It is incompatible with the updater.\n"
+                            "Use -T to remove it.")
+                        return 1
 
-            if not options.no_gc:
-                cursor.execute(gc_sql)
+                if not options.no_gc:
+                    cursor.execute(gc_sql)
 
             conn.commit()
 
@@ -220,6 +227,8 @@ def main(args=None):
                 start_tid = tid
                 end_tid = None
 
+            print(start_tid, end_tid)
+
             for batch in follow.updates(
                 dsn,
                 start_tid=start_tid,
@@ -227,7 +236,7 @@ def main(args=None):
                 batch_limit=options.transaction_size_limit,
                 poll_timeout=options.poll_timeout,
                 ):
-                _update_newt(conn, cursor, jsonifier, Binary, batch)
+                _update_newt(conn, cursor, jsonifier, Binary, batch, redo)
 
 if __name__ == '__main__':
     sys.exit(main())

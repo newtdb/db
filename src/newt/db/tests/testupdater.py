@@ -319,3 +319,59 @@ class UpdaterTests(base.TestCase):
             self.assertEqual(2, updater.main([self.dsn, '--nagios', '1,99']))
             self.assertEqual("Updater is too far behind | 121.100\n",
                              ''.join(writes))
+
+
+class RedoTests(base.TestCase):
+
+    def test_redo_wo_updater(self):
+        # When redoing, if we aren't running the updater, we shouldn't
+        # create the follow table and should use the max(tid) from
+        # object state as the end tid.
+        import ZODB.config
+        from .. import follow, Object, pg_connection, _util, updater
+
+        db = ZODB.config.databaseFromString("""\
+        %%import relstorage
+        <zodb>
+          <relstorage>
+            keep-history false
+            <postgresql>
+              dsn %s
+            </postgresql>
+          </relstorage>
+        </zodb>
+        """ % self.dsn)
+        with db.transaction() as conn:
+            conn.root.x = Object(a=1)
+        db.close()
+
+        conn = pg_connection(self.dsn)
+        cursor = conn.cursor()
+        self.assertFalse(_util.table_exists(cursor, 'newt'))
+        self.assertFalse(_util.table_exists(cursor, follow.PROGRESS_TABLE))
+
+        # If we try to run redo now, we'll get an error, because the
+        # net table doesn't exist:
+        with self.assertRaises(AssertionError):
+            updater.main(['--redo', self.dsn])
+
+        from .. import connection
+
+        # create newt table
+        connection(self.dsn).close()
+
+        # The table is empty:
+        cursor.execute("select count(*) from newt")
+        [[c]] = cursor
+        self.assertEqual(0, c)
+
+        # Now run the redo:
+        updater.main(['--redo', self.dsn])
+
+        # We have rows:
+        cursor.execute("select count(*) from newt")
+        [[c]] = cursor
+        self.assertEqual(2, c)
+
+        # The progres table still doesn't exist
+        self.assertFalse(_util.table_exists(cursor, follow.PROGRESS_TABLE))
