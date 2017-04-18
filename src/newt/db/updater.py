@@ -64,17 +64,16 @@ parser.add_argument(
     help="Don't perform garbage collection on startup.")
 
 parser.add_argument(
-    '--redo', action='store_true',
+    '--compute-missing', action='store_true',
     help="""\
-Redo updates
+Compute missing newt records.
 
-Rather than processing records written before the current tid (in
-object_json_tid), process records writen up through the current tid
-and stop.
+Rather than processing new records, process records written up through
+the current time and stop.  Only missing records are updated.  This
+option requires PostgreSQL 9.5.
 
-This is used to update records after changes to data
-transformations. It should be run *after* restarting the regulsr
-updater.
+This is used to compute newt records after adding Newt DB to an existing
+PostgreSQL RelStorage application.
 """)
 
 parser.add_argument(
@@ -92,7 +91,7 @@ error. For example, 1,99 indicates OK if 1 or less, WARNING if more
 than 1 and less than or equal to 99 and ERROR of more than 99 seconds.
 """)
 
-def _update_newt(conn, cursor, jsonifier, Binary, batch, redo):
+def _update_newt(conn, cursor, jsonifier, Binary, batch):
     ex = cursor.execute
     mogrify = cursor.mogrify
 
@@ -122,11 +121,37 @@ def _update_newt(conn, cursor, jsonifier, Binary, batch, redo):
                          for d in to_save)
                )
 
-    if tid is not None and not redo:
+    if tid is not None:
         follow.set_progress_tid(conn, __name__, tid)
 
     conn.commit()
 
+def _compute_missing(conn, cursor, jsonifier, Binary, batch):
+    ex = cursor.execute
+    mogrify = cursor.mogrify
+
+    tid = None
+    while True:
+        data = list(itertools.islice(batch, 0, 100))
+        if not data:
+            break
+        tid = data[-1][0]
+
+        # Convert, filtering out null conversions (uninteresting classes)
+        to_save = []
+        for tid, zoid, state in data:
+            class_name, ghost_pickle, state = jsonifier((tid, zoid), state)
+            if state is not None:
+                to_save.append((zoid, class_name, Binary(ghost_pickle), state))
+
+        if to_save:
+            ex("insert into newt (zoid, class_name, ghost_pickle, state)"
+               " values %s on conflict do nothing" %
+               ', '.join(mogrify('(%s, %s, %s, %s)', d).decode('ascii')
+                         for d in to_save)
+               )
+
+    conn.commit()
 
 logging_levels = 'DEBUG INFO WARNING ERROR CRITICAL'.split()
 
@@ -184,8 +209,10 @@ def main(args=None):
                         print("OK | %s" % flag())
                         return 0
 
-            redo = options.redo
-            if redo and not table_exists(cursor, follow.PROGRESS_TABLE):
+            compute_missing = options.compute_missing
+            if (compute_missing and
+                not table_exists(cursor, follow.PROGRESS_TABLE)
+                ):
                 if not table_exists(cursor, 'newt'):
                     raise AssertionError("newt table doesn't exist")
                 cursor.execute("select max(tid) from object_state")
@@ -218,16 +245,16 @@ def main(args=None):
                         "but garbage collection was suppressed.")
                 return 0
 
-            if options.redo:
+            if options.compute_missing:
                 start_tid = -1
                 end_tid = tid
-                logger.info("Redoing through", tid)
+                logger.info("Compute_missing through %s", tid)
+                process = _compute_missing
             else:
                 logger.info("Starting updater at %s", tid)
                 start_tid = tid
                 end_tid = None
-
-            print(start_tid, end_tid)
+                process = _update_newt
 
             for batch in follow.updates(
                 dsn,
@@ -236,7 +263,7 @@ def main(args=None):
                 batch_limit=options.transaction_size_limit,
                 poll_timeout=options.poll_timeout,
                 ):
-                _update_newt(conn, cursor, jsonifier, Binary, batch, redo)
+                process(conn, cursor, jsonifier, Binary, batch)
 
 if __name__ == '__main__':
     sys.exit(main())

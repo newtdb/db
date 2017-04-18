@@ -321,9 +321,9 @@ class UpdaterTests(base.TestCase):
                              ''.join(writes))
 
 
-class RedoTests(base.TestCase):
+class ComputeMissingTests(base.TestCase):
 
-    def test_redo_wo_updater(self):
+    def test_compute_missing_wo_updater(self):
         # When redoing, if we aren't running the updater, we shouldn't
         # create the follow table and should use the max(tid) from
         # object state as the end tid.
@@ -353,7 +353,7 @@ class RedoTests(base.TestCase):
         # If we try to run redo now, we'll get an error, because the
         # net table doesn't exist:
         with self.assertRaises(AssertionError):
-            updater.main(['--redo', self.dsn])
+            updater.main(['--compute-missing', self.dsn])
 
         # create newt table
         from .. import connection
@@ -365,7 +365,7 @@ class RedoTests(base.TestCase):
         self.assertEqual(0, c)
 
         # Now run the redo:
-        updater.main(['--redo', self.dsn])
+        updater.main(['--compute-missing', self.dsn])
 
         # We have rows:
         cursor.execute("select count(*) from newt")
@@ -377,3 +377,42 @@ class RedoTests(base.TestCase):
 
         cursor.close()
         conn.close()
+
+    def test_catch_up_consistency(self, back=False):
+        import newt.db, BTrees.OOBTree
+        conn = newt.db.connection(self.dsn)
+        conn.root.b = BTrees.OOBTree.BTree()
+        N = 300
+        for i in range(*((N-1, -1, -1) if back else (N,))):
+            conn.root.b[i] = newt.db.Object(i=i, x=0)
+            conn.commit()
+        pg = newt.db.pg_connection(self.dsn)
+        cursor = pg.cursor()
+        cursor.execute("truncate newt")
+        pg.commit()
+
+        import threading
+        ev = threading.Event()
+
+        def update():
+            ev.set()
+            for o in conn.root.b.values():
+                o.x = 1; conn.commit()
+
+        from .. import updater
+
+        t = threading.Thread(target=update)
+        t.setDaemon(True)
+        t.start()
+        ev.wait(9)
+        updater.main(['--compute-missing', self.dsn])
+        t.join(N/10)
+        self.assertEqual(N, len([o for o in conn.root.b.values() if o.x == 1]))
+        pg.rollback()
+        cursor.execute(
+            """select count(*) from newt where state @> '{"x": 1}'""")
+        [[n]] = cursor
+        self.assertEqual(N, n)
+
+    def test_catch_up_consistency_back(self):
+        self.test_catch_up_consistency(True)
