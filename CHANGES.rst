@@ -1,7 +1,7 @@
 Changes
 =======
 
-0.5.3 (unreleased)
+0.5.3 (2017-04-18)
 ------------------
 
 - Fixed: Newt DB couldn't be added to an existing RelStorage database.
