@@ -355,9 +355,8 @@ class RedoTests(base.TestCase):
         with self.assertRaises(AssertionError):
             updater.main(['--redo', self.dsn])
 
-        from .. import connection
-
         # create newt table
+        from .. import connection
         connection(self.dsn).close()
 
         # The table is empty:
@@ -375,3 +374,6 @@ class RedoTests(base.TestCase):
 
         # The progres table still doesn't exist
         self.assertFalse(_util.table_exists(cursor, follow.PROGRESS_TABLE))
+
+        cursor.close()
+        conn.close()
