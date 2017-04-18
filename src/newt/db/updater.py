@@ -64,17 +64,16 @@ parser.add_argument(
     help="Don't perform garbage collection on startup.")
 
 parser.add_argument(
-    '--redo', action='store_true',
+    '--compute-missing', action='store_true',
     help="""\
-Redo updates
+Compute missing newt records.
 
-Rather than processing records written before the current tid (in
-object_json_tid), process records writen up through the current tid
-and stop.
+Rather than processing new records, process records written up through
+the current time and stop.  Only missing records are updated.  This
+option requires PostgreSQL 9.5.
 
-This is used to update records after changes to data
-transformations. It should be run *after* restarting the regulsr
-updater.
+This is used to compute newt records after adding Newt DB to an existing
+PostgreSQL RelStorage application.
 """)
 
 parser.add_argument(
@@ -127,6 +126,32 @@ def _update_newt(conn, cursor, jsonifier, Binary, batch):
 
     conn.commit()
 
+def _compute_missing(conn, cursor, jsonifier, Binary, batch):
+    ex = cursor.execute
+    mogrify = cursor.mogrify
+
+    tid = None
+    while True:
+        data = list(itertools.islice(batch, 0, 100))
+        if not data:
+            break
+        tid = data[-1][0]
+
+        # Convert, filtering out null conversions (uninteresting classes)
+        to_save = []
+        for tid, zoid, state in data:
+            class_name, ghost_pickle, state = jsonifier((tid, zoid), state)
+            if state is not None:
+                to_save.append((zoid, class_name, Binary(ghost_pickle), state))
+
+        if to_save:
+            ex("insert into newt (zoid, class_name, ghost_pickle, state)"
+               " values %s on conflict do nothing" %
+               ', '.join(mogrify('(%s, %s, %s, %s)', d).decode('ascii')
+                         for d in to_save)
+               )
+
+    conn.commit()
 
 logging_levels = 'DEBUG INFO WARNING ERROR CRITICAL'.split()
 
@@ -184,23 +209,32 @@ def main(args=None):
                         print("OK | %s" % flag())
                         return 0
 
-            tid = follow.get_progress_tid(conn, __name__)
-            if tid < 0 and not table_exists(cursor, 'newt'):
-                from ._adapter import _newt_ddl
-                cursor.execute(_newt_ddl)
-            elif trigger_exists(cursor, DELETE_TRIGGER):
-                if options.remove_delete_trigger:
-                    cursor.execute("drop trigger %s on object_state" %
-                                   DELETE_TRIGGER)
-                else:
-                    logger.error(
-                        "The Newt DB delete trigger exists.\n"
-                        "It is incompatible with the updater.\n"
-                        "Use -T to remove it.")
-                    return 1
+            compute_missing = options.compute_missing
+            if (compute_missing and
+                not table_exists(cursor, follow.PROGRESS_TABLE)
+                ):
+                if not table_exists(cursor, 'newt'):
+                    raise AssertionError("newt table doesn't exist")
+                cursor.execute("select max(tid) from object_state")
+                [[tid]] = cursor
+            else:
+                tid = follow.get_progress_tid(conn, __name__)
+                if tid < 0 and not table_exists(cursor, 'newt'):
+                    from ._adapter import _newt_ddl
+                    cursor.execute(_newt_ddl)
+                elif trigger_exists(cursor, DELETE_TRIGGER):
+                    if options.remove_delete_trigger:
+                        cursor.execute("drop trigger %s on object_state" %
+                                       DELETE_TRIGGER)
+                    else:
+                        logger.error(
+                            "The Newt DB delete trigger exists.\n"
+                            "It is incompatible with the updater.\n"
+                            "Use -T to remove it.")
+                        return 1
 
-            if not options.no_gc:
-                cursor.execute(gc_sql)
+                if not options.no_gc:
+                    cursor.execute(gc_sql)
 
             conn.commit()
 
@@ -211,14 +245,16 @@ def main(args=None):
                         "but garbage collection was suppressed.")
                 return 0
 
-            if options.redo:
+            if options.compute_missing:
                 start_tid = -1
                 end_tid = tid
-                logger.info("Redoing through", tid)
+                logger.info("Compute_missing through %s", tid)
+                process = _compute_missing
             else:
                 logger.info("Starting updater at %s", tid)
                 start_tid = tid
                 end_tid = None
+                process = _update_newt
 
             for batch in follow.updates(
                 dsn,
@@ -227,7 +263,7 @@ def main(args=None):
                 batch_limit=options.transaction_size_limit,
                 poll_timeout=options.poll_timeout,
                 ):
-                _update_newt(conn, cursor, jsonifier, Binary, batch)
+                process(conn, cursor, jsonifier, Binary, batch)
 
 if __name__ == '__main__':
     sys.exit(main())

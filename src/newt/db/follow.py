@@ -7,6 +7,7 @@ from ._adapter import determine_keep_history
 logger = logging.getLogger(__name__)
 
 NOTIFY = 'newt_object_state_changed'
+PROGRESS_TABLE = 'newt_follow_progress'
 
 def non_empty_generator(gen):
     try:
@@ -223,8 +224,8 @@ def _ex_progress(conn, cursor, sql, *args):
     except Exception:
         # Hm, maybe the table doesn't exist:
         conn.rollback()
-        if not table_exists(cursor, 'newt_follow_progress'):
-            cursor.execute("create table newt_follow_progress"
+        if not table_exists(cursor, PROGRESS_TABLE):
+            cursor.execute("create table " + PROGRESS_TABLE +
                            " (id text primary key, tid bigint)")
 
         # Try again. Note that if we didn't create the table, this
@@ -258,7 +259,7 @@ def get_progress_tid(connection, id):
     with closing(connection.cursor()) as cursor:
         _ex_progress(
             connection, cursor,
-            "select tid from newt_follow_progress where id = %s", id)
+            "select tid from %s where id = %%s" % PROGRESS_TABLE, id)
 
         tid = list(cursor)
         if tid:
@@ -289,9 +290,9 @@ def set_progress_tid(connection, id, tid):
 
     with closing(connection.cursor()) as cursor:
         _ex_progress(connection, cursor,
-                     "delete from newt_follow_progress where id=%s", id)
+                     "delete from %s where id=%%s" % PROGRESS_TABLE, id)
         cursor.execute(
-            "insert into newt_follow_progress(id, tid) values(%s, %s)",
+            "insert into %s(id, tid) values(%%s, %%s)" % PROGRESS_TABLE,
             (id, tid))
 
 def stop_updates(conn):

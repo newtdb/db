@@ -26,3 +26,26 @@ RelStorage ``zodbconvert`` works with Newt DB.
 The next version of Newt will provide a options for batch-computation
 of JSON data, which will allow the conversion of existing Postgres
 RelStorage databases in place.
+
+Updating an existing PostgreSQL RelStorage ZODB application to use Newt DB
+==========================================================================
+
+There are two ways to add Newt DB to an existing PostgreSQL RelStorage
+ZODB application.
+
+a. Update your :doc:`database text configuration <text-configuration>`
+   to include a ``newt`` tag and optionally a ``newtdb`` tag.  After
+   all of your database clients have been updated (and restarted),
+   then new database records will be written to the ``newt`` table.
+   You'll need to run the :doc:`newt updater <updater>` with the
+   ``--compute-missing`` option to write ``newt`` records for your
+   older data:
+
+   .. code-block:: console
+
+      newt-updater --compute-missing CONNECTION_STRING
+
+b. Use the :doc:`Newt DB updater <updater>` to maintain Newt data
+   asynchronously.  This requires no change to your database setup, but
+   requires managing a separate process.  Because updates are
+   asynchronous, Newt JSON data may be slightly out of date at times.

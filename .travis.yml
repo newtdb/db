@@ -1,9 +1,10 @@
 language: python
 sudo: false
+dist: trusty
 services:
   - postgresql
 addons:
-  postgresql: "9.4"
+  postgresql: "9.5"
 
 python:
   - pypy-5.4.1

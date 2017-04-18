@@ -319,3 +319,100 @@ class UpdaterTests(base.TestCase):
             self.assertEqual(2, updater.main([self.dsn, '--nagios', '1,99']))
             self.assertEqual("Updater is too far behind | 121.100\n",
                              ''.join(writes))
+
+
+class ComputeMissingTests(base.TestCase):
+
+    def test_compute_missing_wo_updater(self):
+        # When redoing, if we aren't running the updater, we shouldn't
+        # create the follow table and should use the max(tid) from
+        # object state as the end tid.
+        import ZODB.config
+        from .. import follow, Object, pg_connection, _util, updater
+
+        db = ZODB.config.databaseFromString("""\
+        %%import relstorage
+        <zodb>
+          <relstorage>
+            keep-history false
+            <postgresql>
+              dsn %s
+            </postgresql>
+          </relstorage>
+        </zodb>
+        """ % self.dsn)
+        with db.transaction() as conn:
+            conn.root.x = Object(a=1)
+        db.close()
+
+        conn = pg_connection(self.dsn)
+        cursor = conn.cursor()
+        self.assertFalse(_util.table_exists(cursor, 'newt'))
+        self.assertFalse(_util.table_exists(cursor, follow.PROGRESS_TABLE))
+
+        # If we try to run redo now, we'll get an error, because the
+        # net table doesn't exist:
+        with self.assertRaises(AssertionError):
+            updater.main(['--compute-missing', self.dsn])
+
+        # create newt table
+        from .. import connection
+        connection(self.dsn).close()
+
+        # The table is empty:
+        cursor.execute("select count(*) from newt")
+        [[c]] = cursor
+        self.assertEqual(0, c)
+
+        # Now run the redo:
+        updater.main(['--compute-missing', self.dsn])
+
+        # We have rows:
+        cursor.execute("select count(*) from newt")
+        [[c]] = cursor
+        self.assertEqual(2, c)
+
+        # The progres table still doesn't exist
+        self.assertFalse(_util.table_exists(cursor, follow.PROGRESS_TABLE))
+
+        cursor.close()
+        conn.close()
+
+    def test_catch_up_consistency(self, back=False):
+        import newt.db, BTrees.OOBTree
+        conn = newt.db.connection(self.dsn)
+        conn.root.b = BTrees.OOBTree.BTree()
+        N = 300
+        for i in range(*((N-1, -1, -1) if back else (N,))):
+            conn.root.b[i] = newt.db.Object(i=i, x=0)
+            conn.commit()
+        pg = newt.db.pg_connection(self.dsn)
+        cursor = pg.cursor()
+        cursor.execute("truncate newt")
+        pg.commit()
+
+        import threading
+        ev = threading.Event()
+
+        def update():
+            ev.set()
+            for o in conn.root.b.values():
+                o.x = 1; conn.commit()
+
+        from .. import updater
+
+        t = threading.Thread(target=update)
+        t.setDaemon(True)
+        t.start()
+        ev.wait(9)
+        updater.main(['--compute-missing', self.dsn])
+        t.join(N/10)
+        self.assertEqual(N, len([o for o in conn.root.b.values() if o.x == 1]))
+        pg.rollback()
+        cursor.execute(
+            """select count(*) from newt where state @> '{"x": 1}'""")
+        [[n]] = cursor
+        self.assertEqual(N, n)
+
+    def test_catch_up_consistency_back(self):
+        self.test_catch_up_consistency(True)

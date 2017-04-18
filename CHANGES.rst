@@ -6,6 +6,16 @@ Changes
 
 - Fixed: Newt DB couldn't be added to an existing RelStorage database.
 
+- Removed the updater ``--redo`` option. It was implemented incorrectly.
+  Implementing it correctly will be necessary at some point, but for
+  now, we'll punt.
+
+- Added a new ``--compute-missing`` option to compute missing Newt
+  records after updating an application from plain RelStorage. (This
+  is similar to the removed ``--redo`` but simpler and narrower in
+  scope.)
+
+
 0.5.2 (2017-04-01)
 ------------------
 
