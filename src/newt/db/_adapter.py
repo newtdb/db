@@ -62,6 +62,7 @@ class Mover(relstorage.adapters.postgresql.mover.PostgreSQLObjectMover):
             )
 
     _move_json_sql = """
+    LOCK TABLE newt IN SHARE MODE;
     DELETE FROM newt WHERE zoid IN (SELECT zoid FROM temp_store);
 
     INSERT INTO newt (zoid, class_name, ghost_pickle, state)
