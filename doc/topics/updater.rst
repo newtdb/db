@@ -109,6 +109,16 @@ To use Newt's asynchronous updater:
   This is a backstop to PostgreSQL's notification. The default timeout
   is 300 seconds.
 
+-m, --transaction-size-limit
+  The target transaction batch size.  This limits (loosely) the number
+  of records processed in a batch. Larger batches incur less overhead,
+  but long-lasting transactions can cause interfere with other
+  processing.  The default is 100 thousand records.
+
+  This option only comes into play when a large number of records have
+  to be processed, typically when first running the updater or using
+  the ``--compute-missing option``.
+
 -T, --remove-delete-trigger
   Remove the Newt DB delete trigger, if it exists.
 
