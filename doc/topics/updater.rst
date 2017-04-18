@@ -132,6 +132,17 @@ To use Newt's asynchronous updater:
     psycopg2cffi).  By default, the appropriate driver will be
     selected automatically.
 
+--compute-missing
+    Compute missing newt records.
+
+    Rather than processing new records, process records written up through
+    the current time and stop.  Only missing records are updated.  **This
+    option requires PostgreSQL 9.5 or later.**
+
+    This is used to compute newt records after adding Newt DB to an existing
+    PostgreSQL RelStorage application.
+
+
 Garbage collection
 ==================
 
