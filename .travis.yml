@@ -1,5 +1,6 @@
 language: python
 sudo: false
+dist: trusty
 services:
   - postgresql
 addons:
