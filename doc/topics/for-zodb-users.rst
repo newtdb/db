@@ -45,6 +45,8 @@ a. Update your :doc:`database text configuration <text-configuration>`
 
       newt-updater --compute-missing CONNECTION_STRING
 
+   **Note that this option requires PostgreSQL 9.5.**
+
 b. Use the :doc:`Newt DB updater <updater>` to maintain Newt data
    asynchronously.  This requires no change to your database setup, but
    requires managing a separate process.  Because updates are
