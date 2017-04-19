@@ -1,7 +1,7 @@
 Changes
 =======
 
-0.6.0 (unreleased)
+0.6.0 (2017-04-19)
 ------------------
 
 - Add a -x/--transform option to the updater to specify a
