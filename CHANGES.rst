@@ -1,11 +1,11 @@
 Changes
 =======
 
-0.5.4 (unreleased)
+0.6.0 (unreleased)
 ------------------
 
-- Nothing changed yet.
-
+- Add a -x/--transform option to the updater to specify a
+  data-transformation function.
 
 0.5.3 (2017-04-18)
 ------------------

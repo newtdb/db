@@ -321,6 +321,31 @@ class UpdaterTests(base.TestCase):
                              ''.join(writes))
 
 
+def xform(class_name, state):
+    if class_name == 'persistent.mapping.PersistentMapping':
+        import json
+        return json.dumps(json.loads(state)['data'])
+
+class TransformTests(base.TestCase):
+
+    def test_updater_transform(self):
+        # Initialize a database:
+        import newt.db
+        conn = newt.db.connection(self.dsn)
+        conn.root.x = 1
+        conn.commit()
+
+        pg = newt.db.pg_connection(self.dsn)
+        cursor = pg.cursor()
+        cursor.execute("truncate newt"); pg.commit()
+
+        from .. import updater
+        updater.main(['--compute-missing', '-x', __name__ + '.xform', self.dsn])
+        pg.rollback()
+        cursor.execute('select state from newt')
+        [[state]] = cursor
+        self.assertEqual(dict(x=1), state)
+
 class ComputeMissingTests(base.TestCase):
 
     def test_compute_missing_wo_updater(self):
