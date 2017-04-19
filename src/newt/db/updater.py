@@ -91,6 +91,15 @@ error. For example, 1,99 indicates OK if 1 or less, WARNING if more
 than 1 and less than or equal to 99 and ERROR of more than 99 seconds.
 """)
 
+parser.add_argument(
+    '-x', '--transform',
+    help = """\
+The dotted name of a function (or callable object) to
+transform generated JSON data.  This provides a way to control
+how your JSON data are generated and also provides a mechanism
+for ignoring some objects.  See the Newt DB transform option.
+""")
+
 def _update_newt(conn, cursor, jsonifier, Binary, batch):
     ex = cursor.execute
     mogrify = cursor.mogrify
@@ -165,7 +174,12 @@ def main(args=None):
             from ZConfig import configureLoggers
             configureLoggers(f.read())
 
-    jsonifier = Jsonifier()
+    transform = options.transform
+    if transform is not None:
+        from .component import global_by_name
+        transform = global_by_name(transform)
+
+    jsonifier = Jsonifier(transform=transform)
     driver = relstorage.adapters.postgresql.select_driver(
         relstorage.options.Options(driver=options.driver))
     Binary = driver.Binary

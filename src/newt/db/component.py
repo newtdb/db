@@ -1,6 +1,11 @@
 import relstorage.storage
 import relstorage.adapters.postgresql
 
+def global_by_name(name):
+    mod, func = name.rsplit('.', 1)
+    mod = __import__(mod, {}, {}, ['*'])
+    return getattr(mod, func)
+
 class Adapter:
 
     def __init__(self, config):
@@ -11,10 +16,7 @@ class Adapter:
         from ._adapter import Adapter
         transform = self.transform
         if transform is not None:
-            mod, func = transform.rsplit('.', 1)
-            mod = __import__(mod, {}, {}, ['*'])
-            transform = getattr(mod, func)
-            options.transform = transform
+            options.transform = global_by_name(transform)
 
         return Adapter(dsn=self.config.dsn, options=options)
 
