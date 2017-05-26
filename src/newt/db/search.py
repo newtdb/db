@@ -203,7 +203,7 @@ def create_text_index(conn, fname, D, C=None, B=None, A=None, config=None):
     connection, but a separate connection is used, so it's execution
     is independent of the current transaction.
     """
-    conn, cursor = conn._storage.ex_connect()
+    conn, cursor = _storage(conn).ex_connect()
     sql = create_text_index_sql(fname, D, C, B, A, config)
     try:
         cursor.execute(sql)
