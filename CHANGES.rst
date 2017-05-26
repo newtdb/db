@@ -1,7 +1,7 @@
 Changes
 =======
 
-0.7.0 (unreleased)
+0.7.0 (2017-05-26)
 ------------------
 
 - Fixed: newt.db.search.query_data didn't accept an ordinary ZODB connection.
