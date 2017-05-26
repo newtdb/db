@@ -242,6 +242,26 @@ class SearchTests(DBSetup, unittest.TestCase):
                  where state @> '{"text": "foo bar"}'""")
              ])
 
+        # Make sure we can search using a ZODB connection:
+        self.assertEqual(
+            [[1]],
+            [list(map(int, r)) for r in
+             search.query_data(
+                 self.conn._connection,
+                 """select zoid from newt
+                 where state @> '{"text": "foo bar"}'""")
+             ])
+
+        # For good mesaue, we can search with a persistent object:
+        self.assertEqual(
+            [[1]],
+            [list(map(int, r)) for r in
+             search.query_data(
+                 self.conn._connection.root(),
+                 """select zoid from newt
+                 where state @> '{"text": "foo bar"}'""")
+             ])
+
 expect_simple_text = """\
 create or replace function mytext(state jsonb) returns tsvector as $$
 declare
