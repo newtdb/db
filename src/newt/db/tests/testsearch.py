@@ -220,6 +220,26 @@ class SearchTests(DBSetup, unittest.TestCase):
             set(self.conn.where("txt(state) @@ 'bar | green'")),
             )
 
+    def test_create_text_index_db_object(self):
+        from .. import search
+        conn = self.conn.root()
+        search.create_text_index(conn, 'txt', 'text')
+        self.store('a', text='foo bar')
+        self.store('b', text='foo baz')
+        self.store('c', text='green eggs and spam')
+        self.assertEqual(
+            set((self.conn.root.a, self.conn.root.b)),
+            set(self.conn.where("txt(state) @@ 'foo'")),
+            )
+        self.assertEqual(
+            set((self.conn.root.a, )),
+            set(self.conn.where("txt(state) @@ 'foo & bar'")),
+            )
+        self.assertEqual(
+            set((self.conn.root.a, self.conn.root.c)),
+            set(self.conn.where("txt(state) @@ 'bar | green'")),
+            )
+
     def test_query_data(self):
         from .. import search
         self.store('a', text='foo bar')
@@ -238,6 +258,26 @@ class SearchTests(DBSetup, unittest.TestCase):
             [list(map(int, r)) for r in
              search.query_data(
                  self.conn,
+                 """select zoid from newt
+                 where state @> '{"text": "foo bar"}'""")
+             ])
+
+        # Make sure we can search using a ZODB connection:
+        self.assertEqual(
+            [[1]],
+            [list(map(int, r)) for r in
+             search.query_data(
+                 self.conn._connection,
+                 """select zoid from newt
+                 where state @> '{"text": "foo bar"}'""")
+             ])
+
+        # For good mesaue, we can search with a persistent object:
+        self.assertEqual(
+            [[1]],
+            [list(map(int, r)) for r in
+             search.query_data(
+                 self.conn._connection.root(),
                  """select zoid from newt
                  where state @> '{"text": "foo bar"}'""")
              ])

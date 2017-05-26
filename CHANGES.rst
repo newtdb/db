@@ -1,10 +1,13 @@
 Changes
 =======
 
-0.6.1 (unreleased)
+0.7.0 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Fixed: newt.db.search.query_data didn't accept an ordinary ZODB connection.
+
+- The methods in newt.db.search that accept a connection now
+  accept a database object (in addition to a Newt or ZODB connection).
 
 
 0.6.0 (2017-04-19)
