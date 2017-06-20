@@ -5,7 +5,10 @@ Getting started with Newt DB
 .. contents::
 
 You'll need a Postgres Database server. You can `install one yourself
-<https://www.postgresql.org/download/>`_ or you can use a `hosted Postgres server <https://www.google.com/search?q=postgres+as+a+service>`_.
+<https://www.postgresql.org/download/>`_ or you can use a `hosted
+Postgres server
+<https://www.google.com/search?q=postgres+as+a+service>`_. You'll need
+Postgres 9.5 or later.
 
 Next, install newt.db::
 

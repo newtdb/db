@@ -1,10 +1,19 @@
 Changes
 =======
 
-0.6.1 (unreleased)
+0.7.0 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Changed the way records are written to the ``newt`` table:
+
+  - Records are written in object id order.
+
+  - Updated are applied using "upserts" so that records don't
+    disappear during the update process, which previously caused
+    breakage when PostgreSQL operations during update (triggers or
+    indexes) examined multiple records.
+
+- Postgres 9.5 or later is now required.
 
 
 0.6.0 (2017-04-19)
