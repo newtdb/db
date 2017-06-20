@@ -1,0 +1,3 @@
+psql -c 'drop database if exists zodbshootout_newt'
+psql -c 'create database zodbshootout_newt'
+bin/zodbshootout shootout.cfg "$@"
