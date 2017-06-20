@@ -1,7 +1,7 @@
 Changes
 =======
 
-0.7.0 (unreleased)
+0.8.0 (unreleased)
 ------------------
 
 - Changed the way records are written to the ``newt`` table:
@@ -14,6 +14,15 @@ Changes
     indexes) examined multiple records.
 
 - Postgres 9.5 or later is now required.
+
+
+0.7.0 (2017-05-26)
+------------------
+
+- Fixed: newt.db.search.query_data didn't accept an ordinary ZODB connection.
+
+- The methods in newt.db.search that accept a connection now
+  accept a database object (in addition to a Newt or ZODB connection).
 
 
 0.6.0 (2017-04-19)

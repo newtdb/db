@@ -203,7 +203,7 @@ def create_text_index(conn, fname, D, C=None, B=None, A=None, config=None):
     connection, but a separate connection is used, so it's execution
     is independent of the current transaction.
     """
-    conn, cursor = conn._storage.ex_connect()
+    conn, cursor = _storage(conn).ex_connect()
     sql = create_text_index_sql(fname, D, C, B, A, config)
     try:
         cursor.execute(sql)
@@ -233,7 +233,8 @@ def query_data(conn, query, *args, **kw):
             raise TypeError("Only positional or keyword arguments"
                             " may be provided, not both.")
         args = kw
-    cursor = conn._connection._storage.ex_cursor()
+
+    cursor = read_only_cursor(conn)
     try:
         cursor.execute(query, args)
         result = list(cursor)
@@ -310,6 +311,12 @@ def where_batch(conn, query_tail, args, batch_start, batch_size=None):
                         args, batch_start, batch_size)
 
 
+def _storage(conn):
+    try:
+        return conn._storage
+    except AttributeError:
+        return conn._p_jar._storage
+
 def read_only_cursor(conn):
     """Get a database cursor for reading.
 
@@ -321,4 +328,4 @@ def read_only_cursor(conn):
 
     The caller must close the returned cursor after use.
     """
-    return conn._storage.ex_cursor()
+    return _storage(conn).ex_cursor()
