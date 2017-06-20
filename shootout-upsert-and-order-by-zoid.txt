@@ -1,0 +1,64 @@
+Measuring performance impact of saving Newt objects in zoid order and upsert
+=============================================================================
+
+Applications may do work in triggers (or indexes) when data are saved
+to Newt.  This is especially relevant when the analysis involves
+hierarchy.  It's common, in ZODB applications for parent objects to
+have lower object ids than children and this can be exploited if
+objects with lower oids are written first.
+
+In any case, the previous approach to applying updates of deleting
+conflicting records and then doing inserts made computations involving
+related objects especially perilous.
+
+Before
+=======
+
+bin/zodbshootout shootout.cfg -c4 -n10 -s999
+"Transaction",              pg,     newt
+"Add 10 Objects",             1956,   1035
+"Update 10 Objects",          1967,   1083
+"Read 10 Warm Objects",       6021,   5949
+"Read 10 Cold Objects",       6972,   7081
+
++ order by zoid
+===============
+
+bin/zodbshootout shootout.cfg -c4 -n10 -s999
+"Transaction",              pg,     newt
+"Add 10 Objects",             1612,   1012
+"Update 10 Objects",          1597,   1042
+"Read 10 Warm Objects",       5942,   6051
+"Read 10 Cold Objects",       6930    7115
+
++ upsert
+=========
+
+./shootout -c4 -n10 -s999
+"Transaction",              pg,     newt
+"Add 10 Objects",             1733,   1114
+"Update 10 Objects",          1730,   1141
+"Read 10 Warm Objects",       5979,   5991
+"Read 10 Cold Objects",       7036,   6917
+
++ upsert + order by
+===================
+
+./shootout -c4 -n10 -s999
+"Transaction",              pg,     newt
+"Add 10 Objects",             1674,   1123
+"Update 10 Objects",          1689,   1139
+"Read 10 Warm Objects",       5934,   6198
+"Read 10 Cold Objects",       7048,   7180
+
++ upsert + order by + primary key
+=================================
+
+./shootout -c4 -n10 -s999
+"Transaction",              pg,     newt
+"Add 10 Objects",             1772,   1055
+"Update 10 Objects",          1696,   1079
+"Read 10 Warm Objects",       5899,   5775
+"Read 10 Cold Objects",       6973,   7030
+"Read 10 Hot Objects",       32195,  31505
+"Read 10 Steamin' Objects", 123466, 124818

@@ -63,11 +63,14 @@ class Mover(relstorage.adapters.postgresql.mover.PostgreSQLObjectMover):
 
     _move_json_sql = """
     LOCK TABLE newt IN SHARE MODE;
-    DELETE FROM newt WHERE zoid IN (SELECT zoid FROM temp_store);
 
     INSERT INTO newt (zoid, class_name, ghost_pickle, state)
     SELECT zoid, class_name, ghost_pickle, state
-    FROM temp_store_json
+    FROM temp_store_json order by zoid
+    ON CONFLICT (zoid) DO UPDATE SET
+      class_name = EXCLUDED.class_name,
+      ghost_pickle = EXCLUDED.ghost_pickle,
+      state = EXCLUDED.state;
     """
 
     def move_from_temp(self, cursor, tid, txn_has_blobs):
