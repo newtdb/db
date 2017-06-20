@@ -1,7 +1,7 @@
 Changes
 =======
 
-0.8.0 (unreleased)
+0.8.0 (2017-06-20)
 ------------------
 
 - Changed the way records are written to the ``newt`` table:
