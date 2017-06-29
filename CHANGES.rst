@@ -1,7 +1,7 @@
 Changes
 =======
 
-0.9. (unreleased)
+0.9.0 (unreleased)
 ------------------
 
 - Added an experimental feature to update auxiliary tables to support
