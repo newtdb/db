@@ -9,6 +9,7 @@ def global_by_name(name):
 class Adapter:
 
     def __init__(self, config):
+        self.auxiliary_tables = config.auxiliary_tables
         self.transform = config.transform
         self.config = config.adapter.config
 
@@ -17,6 +18,7 @@ class Adapter:
         transform = self.transform
         if transform is not None:
             options.transform = global_by_name(transform)
+        options.auxiliary_tables = self.auxiliary_tables or ()
 
         return Adapter(dsn=self.config.dsn, options=options)
 
