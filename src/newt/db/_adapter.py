@@ -28,6 +28,8 @@ class Adapter(relstorage.adapters.postgresql.PostgreSQLAdapter):
 
         self.mover.jsonifier = Jsonifier(
             transform=getattr(self.options, 'transform', None))
+        self.mover.auxiliary_tables = getattr(self.options,
+                                              'auxiliary_tables', ())
 
 class Mover(relstorage.adapters.postgresql.mover.PostgreSQLObjectMover):
 
@@ -73,9 +75,16 @@ class Mover(relstorage.adapters.postgresql.mover.PostgreSQLObjectMover):
       state = EXCLUDED.state;
     """
 
+    _update_aux_sql = """
+    DELETE FROM %(name)s WHERE zoid IN (SELECT zoid FROM temp_store);
+    INSERT INTO %(name)s (zoid)         SELECT zoid FROM temp_store ;
+    """
+
     def move_from_temp(self, cursor, tid, txn_has_blobs):
         r = super(Mover, self).move_from_temp(cursor, tid, txn_has_blobs)
         cursor.execute(self._move_json_sql)
+        for name in self.auxiliary_tables:
+            cursor.execute(self._update_aux_sql % dict(name=name))
         return r
 
     def restore(self, cursor, batcher, oid, tid, data):

@@ -1,10 +1,13 @@
 Changes
 =======
 
-0.8.1 (unreleased)
+0.9. (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Added an experimental feature to update auxiliary tables to support
+  indexing data that comes from multiple newt records. (More on this
+  later if initial experiment confirm the usefulness of this
+  feature.)
 
 
 0.8.0 (2017-06-20)

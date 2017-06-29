@@ -27,6 +27,18 @@
       </description>
     </key>
 
+    <key name="auxiliary-tables" datatype="string-list">
+      <description>
+        One or more names of auxiliary data tables.
+
+        These tables must have zoid as a primary key and it should be
+        the only required field.  Records will be added or replaced in
+        these tables after the newt table has been updated and they
+        will generally use newt data to compute additional columns for
+        indexing.
+      </description>
+    </key>
+
   </sectiontype>
 
   <sectiontype

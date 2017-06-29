@@ -1,3 +1,4 @@
+import contextlib
 import persistent.mapping
 import os
 import pickle
@@ -52,6 +53,37 @@ class AdapterTests(DBSetup, unittest.TestCase):
         conn.commit()
 
         self.__assertBasicData(conn, o)
+
+        conn.close()
+
+    def test_basic_auxiliary_tables(self):
+        import newt.db
+
+        conn = newt.db.pg_connection(self.dsn)
+        with conn:
+            with conn.cursor() as cursor:
+                for i in range(1, 3):
+                    cursor.execute(
+                        "create table x%s (zoid bigint primary key, x int)"
+                        % i)
+        conn.close()
+
+        conn = newt.db.connection(
+            self.dsn,
+            keep_history=self.keep_history,
+            auxiliary_tables=('x1', 'x2'),
+            )
+
+        # Add an object:
+        conn.root.x = o = Object(a=1)
+        conn.commit()
+
+        self.__assertBasicData(conn, o)
+        for i in range(1, 3):
+            self.assertEqual(
+                [[0], [1]],
+                [list(map(int, r))
+                 for r in conn.query_data('select zoid from x%s' % i)])
 
         conn.close()
 
