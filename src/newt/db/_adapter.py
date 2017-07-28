@@ -77,7 +77,8 @@ class Mover(relstorage.adapters.postgresql.mover.PostgreSQLObjectMover):
 
     _update_aux_sql = """
     DELETE FROM %(name)s WHERE zoid IN (SELECT zoid FROM temp_store);
-    INSERT INTO %(name)s (zoid)         SELECT zoid FROM temp_store ;
+    INSERT INTO %(name)s (zoid)
+    SELECT zoid FROM temp_store join newt using (zoid);
     """
 
     def move_from_temp(self, cursor, tid, txn_has_blobs):

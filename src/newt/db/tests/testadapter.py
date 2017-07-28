@@ -39,6 +39,7 @@ class AdapterTests(DBSetup, unittest.TestCase):
         self.assertEqual(class_name, 'persistent.mapping.PersistentMapping')
         self.assertEqual(pickle.loads(ghost_pickle),
                          persistent.mapping.PersistentMapping)
+        from pprint import pprint
         self.assertEqual(
             state,
             {'data': {'x': {'id': [1, 'newt.db._object.Object'],
@@ -77,13 +78,19 @@ class AdapterTests(DBSetup, unittest.TestCase):
         # Add an object:
         conn.root.x = o = Object(a=1)
         conn.commit()
-
         self.__assertBasicData(conn, o)
+
+        # Add a BTree too. It shouldn't show up in the aux tables.
+        import BTrees.OOBTree
+        conn.root.b = BTrees.OOBTree.BTree()
+        conn.commit()
+
         for i in range(1, 3):
             self.assertEqual(
                 [[0], [1]],
                 [list(map(int, r))
-                 for r in conn.query_data('select zoid from x%s' % i)])
+                 for r in conn.query_data(
+                     'select zoid from x%s order by zoid' % i)])
 
         conn.close()
 

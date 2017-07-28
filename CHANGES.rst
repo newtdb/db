@@ -4,7 +4,7 @@ Changes
 0.9.1 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Fixed: auxiliary tables got records for oids that weren't included in newt.
 
 
 0.9.0 (2017-06-29)
