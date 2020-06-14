@@ -2,14 +2,14 @@
 Newt DB Architecture
 ====================
 
-Newt builds on `ZODB <www.zodb.org>`_ and `Postgresql
+Newt builds on `ZODB <http://www.zodb.org/>`_ and `PostgreSQL
 <https://www.postgresql.org/>`_.  Both of these are mature open-source
 projects with years of production experience.
 
 ZODB is an object-oriented database for Python.  It provides
 transparent object persistence.  ZODB has a pluggable storage layer
 and Newt leverages `RelStorage
-<http://relstorage.readthedocs.io/en/latest/>`_ to store data in
+<https://relstorage.readthedocs.io/en/latest/>`_ to store data in
 Postgres.
 
 Newt adds conversion of data from the native serialization used by
@@ -29,5 +29,3 @@ Finally, Newt adds additional convenience APIs to more directly support
 it's intended audience.  These are intended to augment but not hide
 ZODB and RelStorage.  Some of these are just aliases.  It will be
 possible to integrate Newt with existing ZODB applications.
-
-
