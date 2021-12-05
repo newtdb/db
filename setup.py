@@ -4,7 +4,7 @@ version = '0.9.1.dev0'
 install_requires = [
     'ZODB <5.4',
     'setuptools',
-    'RelStorage[postgresql] >=2',
+    'RelStorage[postgresql] >=2, <=2.1.1',
     'six']
 extras_require = dict(test=['manuel', 'mock', 'zope.testing', 'zc.zlibstorage'])
 
@@ -24,13 +24,7 @@ classifiers = """\
 Intended Audience :: Developers
 License :: OSI Approved :: MIT License
 Programming Language :: Python
-Programming Language :: Python :: 2
-Programming Language :: Python :: 2.7
-Programming Language :: Python :: 3
-Programming Language :: Python :: 3.4
-Programming Language :: Python :: 3.5
-Programming Language :: Python :: 3.6
-Programming Language :: Python :: Implementation :: CPython
+Programming Language :: Python :: 3.7
 Programming Language :: Python :: Implementation :: PyPy
 Topic :: Database
 Topic :: Software Development :: Libraries :: Python Modules
